@@ -1,0 +1,79 @@
+/* frontend/src/pages/AdminLoginPage.css */
+
+.admin-login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 120px); /* 헤더, 푸터 높이 제외 */
+    background-color: #1F2937; /* HomePage와 유사한 배경 */
+    padding: 20px;
+}
+
+.login-box {
+    background-color: #111827; /* 어두운 카드 배경 */
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    color: #E5E7EB; /* 밝은 텍스트 */
+}
+
+.login-box h2 {
+    color: #F97316; /* 포인트 컬러 */
+    margin-bottom: 30px;
+    font-size: 2em;
+}
+
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #D1D5DB;
+}
+
+.input-group input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #374151; /* 어두운 테두리 */
+    border-radius: 5px;
+    background-color: #4B5563; /* 어두운 입력 필드 배경 */
+    color: #F3F4F6;
+    font-size: 1em;
+    box-sizing: border-box; /* padding이 width에 포함되도록 */
+}
+
+.input-group input[type="password"]:focus {
+    outline: none;
+    border-color: #F97316; /* 포커스 시 포인트 컬러 */
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3);
+}
+
+.login-box button[type="submit"] {
+    background-color: #F97316;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.login-box button[type="submit"]:hover {
+    background-color: #EA580C;
+}
+
+.error-message {
+    color: #EF4444; /* 빨간색 에러 메시지 */
+    margin-top: 15px;
+    font-size: 0.9em;
+}
