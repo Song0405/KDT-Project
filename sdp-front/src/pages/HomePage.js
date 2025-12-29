@@ -3,6 +3,11 @@ import axios from 'axios';
 import './HomePage.css';
 
 const API_BASE_URL = 'http://localhost:8080/api';
+<<<<<<< HEAD
+=======
+// 💡 추가: 백엔드 WebConfig에서 설정한 이미지 경로입니다.
+const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
 
 // --- 독립적인 컴포넌트들 ---
 
@@ -31,24 +36,42 @@ const ProductImageWithRatio = ({ product }) => {
         <div className="product-image-container" style={{ paddingTop: `${imageRatio}%` }}>
             <img
                 ref={imgRef}
+<<<<<<< HEAD
                 src={`/images/${product.imageFileName}`}
                 alt={product.name}
                 className="product-image"
                 onError={(e) => { e.target.style.display = 'none'; }} // 이미지 로드 실패 시 숨김
+=======
+                // 💡 수정: 로컬 /images/ 대신 서버 주소를 사용합니다.
+                src={`${IMAGE_SERVER_URL}/${product.imageFileName}`}
+                alt={product.name}
+                className="product-image"
+                // 💡 수정: 로드 실패 시 숨기는 대신 대체 이미지를 보여줄 수도 있습니다.
+                onError={(e) => { e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'; }}
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
             />
         </div>
     );
 };
 
+<<<<<<< HEAD
 // ExpandedProductCard 컴포넌트 수정: 조건문 위치 변경
 const ExpandedProductCard = ({ product, onClose }) => {
     // Hook들을 최상위 레벨에서 호출
     const [imageRatio, setImageRatio] = useState(75); // 기본값 4:3 (75%)
+=======
+const ExpandedProductCard = ({ product, onClose }) => {
+    const [imageRatio, setImageRatio] = useState(75);
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
     const imgRef = useRef();
 
     useEffect(() => {
         const img = imgRef.current;
+<<<<<<< HEAD
         if (img && product) { // product가 있을 때만 이미지 로딩 로직 실행
+=======
+        if (img && product) {
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
             const handleImageLoad = () => {
                 if (img.naturalWidth > 0) {
                     setImageRatio((img.naturalHeight / img.naturalWidth) * 100);
@@ -61,9 +84,14 @@ const ExpandedProductCard = ({ product, onClose }) => {
                 img.onload = handleImageLoad;
             }
         }
+<<<<<<< HEAD
     }, [product]); // product가 변경될 때마다 다시 실행
 
     //  Hook 호출 이후에 조건문을 사용하여 렌더링을 제어
+=======
+    }, [product]);
+
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
     if (!product) {
         return null;
     }
@@ -74,9 +102,17 @@ const ExpandedProductCard = ({ product, onClose }) => {
                 <div className="expanded-image-container" style={{ paddingTop: `${imageRatio}%` }}>
                     <img
                         ref={imgRef}
+<<<<<<< HEAD
                         src={`/images/${product.imageFileName}`}
                         alt={product.name}
                         className="expanded-product-image"
+=======
+                        // 💡 수정: 서버 주소를 사용합니다.
+                        src={`${IMAGE_SERVER_URL}/${product.imageFileName}`}
+                        alt={product.name}
+                        className="expanded-product-image"
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/600x400?text=No+Image'; }}
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
                     />
                 </div>
                 <div className="expanded-product-info">
@@ -122,6 +158,10 @@ function HomePage() {
             {/* 히어로 섹션 */}
             {companyInfo && (
                 <section className="hero-section">
+<<<<<<< HEAD
+=======
+                    {/* 히어로 배경은 public/images에 있다면 그대로 둡니다. */}
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
                     <img src="/images/hero-background.jpg" alt="Steel Mill Background" className="hero-image" />
                     <div className="hero-content">
                         <h1>{companyInfo.name}</h1>
@@ -133,7 +173,11 @@ function HomePage() {
 
             {error && <div className="error-message">{error}</div>}
 
+<<<<<<< HEAD
             {/* 나머지 정보 섹션 */}
+=======
+            {/* 회사 소개 섹션 */}
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
             <div className="info-section">
                 <h2>회사 소개</h2>
                 {companyInfo ? (
@@ -146,6 +190,10 @@ function HomePage() {
                 ) : <p>회사 정보를 불러오는 중...</p>}
             </div>
 
+<<<<<<< HEAD
+=======
+            {/* 주요 제품 섹션 */}
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
             <div id="products" className="info-section">
                 <h2>주요 제품</h2>
                 {products.length > 0 ? (
@@ -157,7 +205,16 @@ function HomePage() {
                                 )}
                                 <div className="product-card-body">
                                     <h3>{product.name}</h3>
+<<<<<<< HEAD
                                     <p className="product-description">{product.description.substring(0, 80)}...</p>
+=======
+                                    {/* 글자수가 너무 많을 경우를 대비해 자르기 유지 */}
+                                    <p className="product-description">
+                                        {product.description.length > 80
+                                            ? `${product.description.substring(0, 80)}...`
+                                            : product.description}
+                                    </p>
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
                                     <p className="product-price">{product.price?.toLocaleString()}원</p>
                                 </div>
                             </div>
@@ -166,6 +223,10 @@ function HomePage() {
                 ) : <p>등록된 제품이 없습니다.</p>}
             </div>
 
+<<<<<<< HEAD
+=======
+            {/* 공지사항 섹션 */}
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
             <div className="info-section">
                 <h2>공지사항</h2>
                 {notices.length > 0 ? (

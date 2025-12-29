@@ -2,6 +2,7 @@ package choi.sdp_back.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+<<<<<<< HEAD
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -9,20 +10,40 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.lang.NonNull;
+=======
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+<<<<<<< HEAD
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins("http://localhost:3000")
                 // 배포 환경에서는 실제 프론트엔드 도메인으로 변경
                 // .allowedOrigins("http://your-domain.com", "https://your-domain.com")
+=======
+    // 이미지 파일 접근 허용
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:///C:/sdp_uploads/");
+    }
+
+    // CORS 허용 설정
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/api/**") // /api/로 시작하는 모든 경로 허용
+                .allowedOrigins("http://localhost:3000") // 리액트 주소 허용
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
+<<<<<<< HEAD
 
 
     @Override
@@ -63,4 +84,6 @@ public class WebConfig implements WebMvcConfigurer {
         // postHandle과 afterCompletion 메서드는 필수 구현이 아니므로 생략 가능합니다.
         // 필요하다면 @Override 하여 추가 구현할 수 있습니다.
     }
+=======
+>>>>>>> 6ad3a46f4f4624220ae986c885a40afbdb246f8f
 }
