@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    # Change the colon to a slash here
+    url: jdbc:oracle:thin:@localhost:1521/freepdb1  # <-- THIS IS THE FIX
+    username: scott
+    password: tiger
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    # To be extra safe, explicitly tell Hibernate which SQL dialect to use
+    database-platform: org.hibernate.dialect.OracleDialect # <-- ADD THIS LINE
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
