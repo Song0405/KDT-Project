@@ -4,6 +4,7 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
+<<<<<<< HEAD
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="gradleJvm" value="#JAVA_HOME" />
         <option name="modules">
@@ -13,6 +14,8 @@
         </option>
       </GradleProjectSettings>
       <GradleProjectSettings>
+=======
+>>>>>>> origin/main
         <option name="externalProjectPath" value="$PROJECT_DIR$/SDP-back" />
         <option name="gradleJvm" value="#JAVA_HOME" />
         <option name="modules">

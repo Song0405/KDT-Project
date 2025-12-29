@@ -10,15 +10,9 @@
         <module name="choi.SDP-back.main" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel target="17" />
   </component>
   <component name="JavacSettings">
-    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="SDP-back" options="-parameters" />
-      <module name="SDP-back.main" options="-parameters" />
-      <module name="SDP-back.test" options="-parameters" />
-      <module name="choi.SDP-back" options="-parameters" />
-      <module name="choi.SDP-back.main" options="-parameters" />
-      <module name="choi.SDP-back.test" options="-parameters" />
-    </option>
+    <option name="ADDITIONAL_OPTIONS_STRING" value="-parameters" />
   </component>
 </project>
