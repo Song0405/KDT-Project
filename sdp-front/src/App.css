@@ -1,0 +1,192 @@
+/* 기본 스타일 및 폰트 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: #f8f9fa;
+    color: #343a40;
+    line-height: 1.7;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* 헤더 */
+.header {
+    text-align: center;
+    padding: 2rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.header h1 {
+    font-size: 2.8rem;
+    margin: 0;
+    color: #212529;
+}
+
+/* 섹션 공통 스타일 */
+.section {
+    background: #ffffff;
+    padding: 2rem;
+    margin: 2rem 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.section h2 {
+    font-size: 2.2rem;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #0d6efd;
+}
+
+/* 제품 섹션 그리드 */
+.product-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* 모바일: 1열 */
+    gap: 1.5rem;
+}
+
+/* 제품 카드 */
+.product-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.product-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    cursor: pointer; /* 이미지 클릭 가능하도록 커서 변경 */
+}
+
+.product-card-body {
+    padding: 1.5rem;
+}
+
+.product-card-body h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+}
+
+/* 공지사항 목록 */
+.notice-list {
+    list-style: none;
+    padding: 0;
+}
+.notice-list li {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+.notice-list li:last-child {
+    border-bottom: none;
+}
+.notice-list strong {
+    font-size: 1.1rem;
+    color: #343a40;
+}
+
+/* 로딩 및 에러 메시지 */
+.message {
+    text-align: center;
+    padding: 4rem;
+    font-size: 1.2rem;
+}
+.error-message {
+    color: #d9534f;
+}
+
+/* 푸터 */
+.footer {
+    text-align: center;
+    margin-top: 4rem;
+    padding: 2rem 0;
+    border-top: 1px solid #dee2e6;
+    color: #6c757d;
+}
+
+
+/* --- 반응형 디자인을 위한 미디어 쿼리 --- */
+
+/* 태블릿 사이즈 (768px 이상) */
+@media (min-width: 768px) {
+    .container {
+        padding: 2rem;
+    }
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr); /* 태블릿: 2열 */
+    }
+}
+
+/* 데스크탑 사이즈 (1024px 이상) */
+@media (min-width: 1024px) {
+    .product-grid {
+        grid-template-columns: repeat(3, 1fr); /* 데스크탑: 3열 */
+    }
+}
+
+/* --- 모달(Modal) 창을 위한 스타일 추가 --- */
+
+/* 모달 배경 (반투명 검은색) */
+.modal-backdrop {
+    position: fixed; /* 화면 전체에 고정 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* 반투명 검은색 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* 다른 요소들보다 위에 있도록 설정 */
+}
+
+/* 모달 내용이 들어갈 흰색 박스 */
+.modal-content {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 600px; /* 모달의 최대 너비 */
+    position: relative;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* 모달이 나타나는 애니메이션 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 모달 닫기 버튼 */
+.modal-close-button {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #888;
+}
+.modal-close-button:hover {
+    color: #000;
+}
