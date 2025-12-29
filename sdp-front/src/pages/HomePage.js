@@ -5,6 +5,24 @@ import './HomePage.css';
 const API_BASE_URL = 'http://localhost:8080/api';
 // 💡 추가: 백엔드 WebConfig에서 설정한 이미지 경로입니다.
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
+const processSteps = [
+    {
+        id: 1, title: "의뢰 (Request)", icon: "🤝",
+        details: ["고객 요구사항 분석", "주문 접수", "스펙 협의"]
+    },
+    {
+        id: 2, title: "설계 (Design)", icon: "💻",
+        details: ["도면 작성", "공정 계획", "자재 선정", "시뮬레이션"]
+    },
+    {
+        id: 3, title: "제작 (Fabrication)", icon: "⚒️",
+        details: ["원자재 가공", "용접", "절곡", "정밀 가공"]
+    },
+    {
+        id: 4, title: "납품 (Delivery)", icon: "🚚",
+        details: ["품질 검사", "포장", "출하", "설치 지원"]
+    }
+];
 
 // --- 독립적인 컴포넌트들 ---
 
@@ -174,6 +192,31 @@ function HomePage() {
                         ))}
                     </div>
                 ) : <p>등록된 제품이 없습니다.</p>}
+            </div>
+            {/* ⭐ 가로 정렬로 수정된 제조 공정 섹션 */}
+            <div className="info-section">
+                <h2>제조 공정</h2>
+                <div className="process-horizontal-container">
+                    {processSteps.map((step, index) => (
+                        <div key={step.id} className="process-step-box">
+                            {/* 상단 타이틀 영역 */}
+                            <div className="process-step-header">
+                                <span className="step-icon">{step.icon}</span>
+                                <h3>{step.title}</h3>
+                            </div>
+
+                            {/* 상세 내용 리스트 영역 */}
+                            <ul className="process-detail-list">
+                                {step.details.map((detail, idx) => (
+                                    <li key={idx}>{detail}</li>
+                                ))}
+                            </ul>
+
+                            {/* 단계 사이 화살표 (마지막 제외) */}
+                            {index < processSteps.length - 1 && <div className="process-arrow">▶</div>}
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* 공지사항 섹션 */}

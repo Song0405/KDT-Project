@@ -337,3 +337,92 @@ body {
         font-size: 1.8rem;
     }
 }
+/* ⭐ 제조 공정 가로 정렬 스타일 */
+.process-horizontal-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 2rem;
+    position: relative;
+}
+
+.process-step-box {
+    flex: 1;
+    background-color: #1F2937; /* 기존 배경보다 약간 밝은 톤 */
+    border: 1px solid #4B5563;
+    border-radius: 8px;
+    padding: 1.5rem 1rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.process-step-header {
+    text-align: center;
+    margin-bottom: 1.2rem;
+    width: 100%;
+    border-bottom: 2px solid #F97316; /* 이미지와 유사한 상단 강조선 */
+    padding-bottom: 0.8rem;
+}
+
+.step-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.process-step-header h3 {
+    font-size: 1.1rem;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.process-detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.process-detail-list li {
+    font-size: 0.9rem;
+    color: #D1D5DB;
+    margin-bottom: 0.5rem;
+    padding-left: 1.2rem;
+    position: relative;
+}
+
+/* 불렛 포인트 커스텀 (오렌지색 점) */
+.process-detail-list li::before {
+    content: "•";
+    color: #F97316;
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+/* 단계 사이 화살표 스타일 */
+.process-arrow {
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #F97316;
+    font-size: 1rem;
+    z-index: 10;
+}
+
+/* 반응형: 모바일에서는 세로로 전환 */
+@media (max-width: 1024px) {
+    .process-horizontal-container {
+        flex-direction: column;
+        gap: 2rem;
+    }
+    .process-arrow {
+        right: auto;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%) rotate(90deg);
+    }
+}
