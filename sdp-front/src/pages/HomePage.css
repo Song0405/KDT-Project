@@ -1,0 +1,428 @@
+/* frontend/src/pages/HomePage.css */
+
+/* --- 기본 스타일 --- */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: #1F2937;
+    color: #E5E7EB;
+    line-height: 1.6;
+}
+
+.home-page-container {
+    margin: 0;
+    padding: 0;
+}
+
+.error-message {
+    background-color: #4B1A1A;
+    color: #FECACA;
+    border: 1px solid #DC2626;
+    padding: 1.5rem;
+    margin: 2rem auto;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+    max-width: 800px;
+}
+
+/* --- 히어로 섹션 --- */
+.hero-section {
+    background-color: #111827;
+    text-align: center;
+    padding: 0;
+    position: relative;
+    height: 60vh;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.hero-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+    filter: brightness(0.7);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    color: #FFFFFF;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.hero-content p {
+    font-size: 1.25rem;
+    max-width: 600px;
+    margin: 0 auto 2rem auto;
+    color: #D1D5DB;
+}
+
+.hero-button {
+    background-color: #F97316;
+    color: #FFFFFF;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+.hero-button:hover {
+    background-color: #EA580C;
+}
+
+/* --- 정보 섹션 --- */
+.info-section {
+    max-width: 1100px;
+    margin: 4rem auto;
+    padding: 2.5rem;
+    background-color: #111827;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.info-section h2 {
+    font-size: 2.5rem;
+    color: #FFFFFF;
+    border-bottom: 2px solid #F97316;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* --- 제품 그리드 & 카드 --- */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+}
+
+.product-card {
+    background-color: #374151;
+    border: 1px solid #4B5563;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+}
+.product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 25px rgba(249, 115, 22, 0.2);
+}
+
+/* 이미지 비율 유지를 위한 컨테이너 */
+.product-image-container,
+.expanded-image-container { /* 모달 이미지 컨테이너도 동일 적용 */
+    position: relative;
+    width: 100%;
+    height: 0; /* JS에서 padding-top으로 높이 제어 */
+    overflow: hidden;
+    background-color: #1F2937; /* 이미지가 로드되기 전이나 투명할 경우 배경색 */
+}
+
+.product-image,
+.expanded-product-image { /* 모달 이미지도 동일 적용 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* 이미지가 잘리지 않고 컨테이너 안에 다 보이도록 */
+    display: block;
+    border-bottom: 1px solid #4B5563; /* 작은 카드 이미지에만 보일 것 */
+}
+
+
+.product-card-body {
+    padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card-body h3 {
+    color: #F9FAFB;
+    font-size: 1.6rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.product-description {
+    font-size: 1rem;
+    color: #D1D5DB;
+    flex-grow: 1;
+    margin-bottom: 1rem;
+}
+
+.product-price {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #FBBF24;
+    text-align: right;
+    margin-top: auto;
+}
+
+/* --- 공지사항 목록 --- */
+.notice-list {
+    list-style: none;
+    padding: 0;
+}
+.notice-item {
+    padding: 1rem;
+    border-bottom: 1px solid #4B5563;
+}
+.notice-item:last-child {
+    border-bottom: none;
+}
+.notice-item strong {
+    font-size: 1.2rem;
+    color: #F97316;
+}
+.notice-item p {
+    margin: 0.5rem 0 0 0;
+    color: #D1D5DB;
+}
+
+/* --- 반응형 디자인 --- */
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
+    .hero-content p {
+        font-size: 1rem;
+    }
+    .hero-button {
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+    }
+    .info-section h2 {
+        font-size: 2rem;
+    }
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+    .info-section {
+        margin: 2rem auto;
+        padding: 1.5rem;
+    }
+}
+
+/* --- 확대된 카드 (모달) 스타일 --- */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    box-sizing: border-box;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.expanded-product-card {
+    background-color: #1F2937;
+    border: 1px solid #4B5563;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 모달 자체에는 스크롤 없애고 내부 콘텐츠에만 스크롤 적용 */
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* ⭐⭐⭐ 수정된 부분: expanded-image-container의 height 삭제, JS에서 padding-top으로 제어 ⭐⭐⭐ */
+/* .expanded-image-container는 .product-image-container와 스타일을 공유합니다. */
+/* .expanded-product-image는 .product-image와 스타일을 공유합니다. */
+/* JS에서 paddingTop으로 높이 제어 */
+/* ⭐⭐⭐ 여기까지 수정 ⭐⭐⭐ */
+
+.expanded-product-info {
+    padding: 2rem;
+    overflow-y: auto; /* 모달의 이 부분에 스크롤을 적용 */
+    text-align: left;
+    flex-grow: 1; /* 남는 공간 채우기 */
+}
+
+.expanded-product-info h3 {
+    font-size: 2.2rem;
+    color: #F97316;
+    margin: 0 0 1rem 0;
+}
+
+.expanded-product-description {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #E5E7EB;
+    margin-bottom: 1.5rem;
+}
+
+.expanded-product-price {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #FBBF24;
+    text-align: right;
+}
+
+.close-button {
+    background-color: #F97316;
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-top: 1.5rem;
+    float: right;
+    transition: background-color 0.3s ease;
+}
+
+.close-button:hover {
+    background-color: #EA580C;
+}
+
+@media (max-width: 768px) {
+    .expanded-product-card {
+        flex-direction: column;
+        max-height: 80vh;
+    }
+    /* 모바일에서 이미지 컨테이너의 높이도 JS로 제어되므로 고정 높이 삭제 */
+    /* .expanded-image-container { height: auto; } -> CSS에서 제거됨 */
+    .expanded-product-info {
+        padding: 1.5rem;
+    }
+    .expanded-product-info h3 {
+        font-size: 1.8rem;
+    }
+}
+/* ⭐ 제조 공정 가로 정렬 스타일 */
+.process-horizontal-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 2rem;
+    position: relative;
+}
+
+.process-step-box {
+    flex: 1;
+    background-color: #1F2937; /* 기존 배경보다 약간 밝은 톤 */
+    border: 1px solid #4B5563;
+    border-radius: 8px;
+    padding: 1.5rem 1rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.process-step-header {
+    text-align: center;
+    margin-bottom: 1.2rem;
+    width: 100%;
+    border-bottom: 2px solid #F97316; /* 이미지와 유사한 상단 강조선 */
+    padding-bottom: 0.8rem;
+}
+
+.step-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.process-step-header h3 {
+    font-size: 1.1rem;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.process-detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.process-detail-list li {
+    font-size: 0.9rem;
+    color: #D1D5DB;
+    margin-bottom: 0.5rem;
+    padding-left: 1.2rem;
+    position: relative;
+}
+
+/* 불렛 포인트 커스텀 (오렌지색 점) */
+.process-detail-list li::before {
+    content: "•";
+    color: #F97316;
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+/* 단계 사이 화살표 스타일 */
+.process-arrow {
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #F97316;
+    font-size: 1rem;
+    z-index: 10;
+}
+
+/* 반응형: 모바일에서는 세로로 전환 */
+@media (max-width: 1024px) {
+    .process-horizontal-container {
+        flex-direction: column;
+        gap: 2rem;
+    }
+    .process-arrow {
+        right: auto;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%) rotate(90deg);
+    }
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>얼굴 인식 로그인 테스트</title>
+    <style>
+        body { text-align: center; font-family: sans-serif; padding: 50px; }
+        #webcam-container { margin: 20px auto; width: 400px; height: 300px; background: #eee; border: 2px solid #333; position: relative; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; margin-top: 20px; }
+        button:hover { background: #0056b3; }
+        #status { margin-top: 20px; font-weight: bold; font-size: 20px; }
+    </style>
+</head>
+<body>
+
+<h2>👤 얼굴 인식 로그인 테스트</h2>
+<p>카메라를 응시하고 아래 버튼을 누르세요.</p>
+
+<div id="webcam-container">
+    <video id="video" autoplay muted></video>
+</div>
+
+<button onclick="captureAndLogin()">📸 얼굴로 로그인 시도</button>
+
+<div id="status">대기 중...</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+    const video = document.getElementById('video');
+    const statusDiv = document.getElementById('status');
+
+    // 1. 웹캠 켜기
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => { video.srcObject = stream; })
+        .catch(err => {
+            console.error(err);
+            statusDiv.innerText = "웹캠을 켤 수 없습니다. 허용해주세요!";
+            statusDiv.style.color = "red";
+        });
+
+    // 2. 사진 찍어서 서버로 보내기
+    async function captureAndLogin() {
+        statusDiv.innerText = "인식 중... ⏳";
+
+        const canvas = document.getElementById('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // 현재 비디오 화면을 캔버스에 그리기
+        canvas.getContext('2d').drawImage(video, 0, 0);
+
+        // 이미지 데이터를 Base64 문자열로 변환
+        const imageData = canvas.toDataURL('image/jpeg');
+
+        try {
+            // 파이썬 서버로 전송
+            const res = await fetch('/verify-face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            });
+
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                statusDiv.innerText = "✅ " + data.msg;
+                statusDiv.style.color = "green";
+                alert(data.msg); // 성공 알림창
+            } else {
+                statusDiv.innerText = "❌ " + data.msg;
+                statusDiv.style.color = "red";
+            }
+
+        } catch (err) {
+            console.error(err);
+            statusDiv.innerText = "서버 연결 오류!";
+        }
+    }
+</script>
+</body>
+</html>
