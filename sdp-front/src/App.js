@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
 import AdminLoginPage from './pages/AdminLoginPage';
@@ -9,6 +9,8 @@ import './index.css';
 // ⭐ [중요] 만든 페이지들 가져오기
 import JoinPage from './pages/JoinPage';
 import LoginPage from './pages/LoginPage';
+import MyPage from './pages/MyPage';
+import FindPage from './pages/FindPage'; // ✅ [추가] 찾기 페이지 가져오기
 
 function App() {
     // 1. 로그인 상태 관리 (새로고침 해도 유지되도록 localStorage 사용)
@@ -22,11 +24,16 @@ function App() {
         localStorage.setItem('isAuthenticated', isAuthenticated);
     }, [isAuthenticated]);
 
+    const navigate = useNavigate();
+
     // 로그아웃 함수
     const handleLogout = () => {
         setIsAuthenticated(false);
         localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('memberId');
+        localStorage.removeItem('memberType');
         alert("로그아웃 되었습니다.");
+        navigate('/');
     };
 
     return (
@@ -47,12 +54,18 @@ function App() {
 
                         {/* ⭐ 로그인 상태에 따라 메뉴가 다르게 보임 */}
                         {isAuthenticated ? (
-                            // 로그인 했을 때: 로그아웃 버튼 표시
-                            <button onClick={handleLogout} style={styles.logoutButton}>
-                                LOGOUT
-                            </button>
+                            <>
+                                <NavLink
+                                    to="/members/mypage"
+                                    style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
+                                >
+                                    MY PAGE
+                                </NavLink>
+                                <button onClick={handleLogout} style={styles.logoutButton}>
+                                    LOGOUT
+                                </button>
+                            </>
                         ) : (
-                            // 로그인 안 했을 때: JOIN, LOGIN 버튼 표시
                             <>
                                 <NavLink
                                     to="/members/join"
@@ -80,11 +93,17 @@ function App() {
                     {/* 회원가입 페이지 */}
                     <Route path="/members/join" element={<JoinPage />} />
 
-                    {/* ⭐ 로그인 페이지: 성공 시 상태를 바꾸기 위해 함수(setIsAuthenticated)를 전달함 */}
+                    {/* 로그인 페이지 */}
                     <Route
                         path="/members/login"
                         element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
                     />
+
+                    {/* ✅ [추가] 계정 찾기 페이지 경로 연결 */}
+                    <Route path="/members/find" element={<FindPage />} />
+
+                    {/* 마이페이지 경로 연결 */}
+                    <Route path="/members/mypage" element={<MyPage />} />
 
                     {/* 관리자 페이지 */}
                     <Route

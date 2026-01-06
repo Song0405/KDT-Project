@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // ✅ [수정] Link 추가
 
-// ⭐ App.js에서 보낸 setIsAuthenticated를 받음 (중괄호 필수!)
 function LoginPage({ setIsAuthenticated }) {
     const [inputs, setInputs] = useState({
         memberId: '',
@@ -31,13 +30,18 @@ function LoginPage({ setIsAuthenticated }) {
 
             if (response.ok) {
                 const data = await response.json();
-                alert(`환영합니다! ${data.name}님`);
 
-                // ⭐ 여기가 핵심! 로그인 상태를 true로 변경
+                // 1. 정보 저장
+                localStorage.setItem("memberId", data.memberId);
+                localStorage.setItem("memberType", data.type);
+
+                // 2. 상태 업데이트
                 setIsAuthenticated(true);
 
-                // 메인 페이지로 이동
+                // 3. 이동
+                alert(`환영합니다! ${data.name}님`);
                 navigate('/');
+
             } else {
                 const errorText = await response.text();
                 alert("로그인 실패: " + errorText);
@@ -74,6 +78,13 @@ function LoginPage({ setIsAuthenticated }) {
                     로그인하기
                 </button>
             </form>
+
+            {/* ✅ [추가] 계정 찾기 링크 */}
+            <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                <Link to="/members/find" style={{ color: '#6B7280', fontSize: '0.9em', textDecoration: 'none' }}>
+                    아이디 / 비밀번호 찾기
+                </Link>
+            </div>
         </div>
     );
 }
