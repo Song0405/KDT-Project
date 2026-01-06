@@ -31,6 +31,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security' // 추가됨
     implementation 'com.google.cloud:google-cloud-vision:3.42.0' // OCR을 위한 Google Cloud Vision 추가
+    implementation 'org.springframework.boot:spring-boot-starter-mail' //이메일 발송 가능
     implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1' // @PostConstruct 사용을 위해 추가
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
