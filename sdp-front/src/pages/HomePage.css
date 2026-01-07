@@ -426,3 +426,21 @@ body {
         transform: translateX(-50%) rotate(90deg);
     }
 }
+/* 주문 관리 페이지 이동 버튼 스타일 */
+.admin-nav-btn {
+    display: inline-block;
+    background-color: #F97316; /* 주황색 포인트 */
+    color: white;
+    padding: 12px 25px;
+    border-radius: 30px; /* 둥근 버튼 */
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.admin-nav-btn:hover {
+    background-color: #EA580C; /* 호버 시 진한 주황색 */
+    transform: translateY(-3px); /* 살짝 떠오르는 효과 */
+}
