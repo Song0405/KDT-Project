@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# 구글 키 파일 무시 (팀원 전체 적용)
+src/main/resources/google-key.json
+google-key.json

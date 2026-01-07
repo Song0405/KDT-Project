@@ -3,6 +3,8 @@ import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-d
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
 import AdminLoginPage from './pages/AdminLoginPage';
+import OrderSearchPage from './pages/order/OrderSearchPage';
+import OrderManagePage from './pages/order/OrderManagePage';
 import Chatbot from './components/Chatbot';
 import './index.css';
 
@@ -50,6 +52,14 @@ function App() {
                             style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
                         >
                             HOME
+                        </NavLink>
+
+                        {/* ⭐⭐⭐ 2.  배송 조회 버튼*/}
+                        <NavLink
+                            to="/track"
+                            style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
+                        >
+                            배송 조회
                         </NavLink>
 
                         {/* ⭐ 로그인 상태에 따라 메뉴가 다르게 보임 */}
@@ -116,6 +126,8 @@ function App() {
                             )
                         }
                     />
+                    <Route path="/track" element={<OrderSearchPage />} />
+                    <Route path="/admin/orders" element={<OrderManagePage />} />
                 </Routes>
             </main>
 

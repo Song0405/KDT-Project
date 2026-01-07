@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import './AdminPage.css'; // 관리자 페이지 CSS (기존 파일)
 
 const API_BASE_URL = 'http://localhost:8080/api'; // 백엔드 서버 포트 확인
@@ -241,6 +242,13 @@ function AdminPage() {
     return (
         <div className="admin-page-container">
             <h1>관리자 페이지</h1>
+
+            {/* 주문 공정 관리 이동 버튼  */}
+            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+                <Link to="/admin/orders" className="admin-nav-btn">
+                    📦 주문 공정 관리 바로가기 &rarr;
+                </Link>
+            </div>
 
             {/* 회사 정보 관리 섹션 */}
             <section className="admin-section company-info-section">
