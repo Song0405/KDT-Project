@@ -1,10 +1,10 @@
 package choi.sdp_back.service;
 
 import choi.sdp_back.dto.ProductDto;
-import choi.sdp_back.dto.ProductResponseDto; // 추가됨
+import choi.sdp_back.dto.ProductResponseDto;
 import choi.sdp_back.entity.Product;
-import choi.sdp_back.entity.ProductRecommendation; // 추가됨
-import choi.sdp_back.repository.ProductRecommendationRepository; // 추가됨
+import choi.sdp_back.entity.ProductRecommendation;
+import choi.sdp_back.repository.ProductRecommendationRepository;
 import choi.sdp_back.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    // ▼▼▼ AI 관련 의존성 주입
+    // ⭐ AI 추천 저장소와 AI 서비스 주입
     private final ProductRecommendationRepository productRecommendationRepository;
     private final AiService aiService;
 
@@ -36,7 +36,7 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    // 제품 생성 + AI 분석 로직 복구
+    // ⭐ 제품 생성 메서드 (여기를 수정!)
     @Transactional
     public ProductDto createProduct(ProductDto productDto, MultipartFile imageFile) throws IOException {
         String savedFileName = "";
@@ -50,24 +50,41 @@ public class ProductService {
         product.setPrice(productDto.getPrice());
         product.setImageFileName(savedFileName);
 
-        // 1. 상품 저장
+        // 1. 내 상품 저장
         Product savedProduct = productRepository.save(product);
 
-        // ▼▼▼ AI 호출 로직
+        // 2. AI 추천 로직 실행
         try {
-            String aiResult = aiService.getRecommendation(savedProduct.getName(), savedProduct.getDescription());
+            // DB에서 다른 상품들 이름만 다 가져오기
+            List<String> allProductNames = productRepository.findAll().stream()
+                    .map(Product::getName)
+                    .filter(name -> !name.equals(savedProduct.getName())) // 내 이름은 뺌
+                    .collect(Collectors.toList());
 
-            // 결과 파싱 (형식: "추천템 : 이유")
-            String[] parts = aiResult.split(":");
-            String targetName = parts.length > 0 ? parts[0].trim() : "추천 아이템";
-            String reason = parts.length > 1 ? parts[1].trim() : aiResult;
+            if (!allProductNames.isEmpty()) {
+                // AI에게 "이 목록에서 골라줘" 요청
+                String aiResult = aiService.getRecommendation(
+                        savedProduct.getName(),
+                        savedProduct.getDescription(),
+                        allProductNames
+                );
 
-            ProductRecommendation recommendation = new ProductRecommendation(savedProduct, targetName, reason);
-            productRecommendationRepository.save(recommendation);
-            System.out.println("✅ AI 추천 생성 완료: " + targetName);
+                // 로그 찍어서 확인 (중요!)
+                System.out.println("🤖 AI 응답: " + aiResult);
+
+                // 결과 파싱 ("제품명 : 이유" 형태)
+                String[] parts = aiResult.split(":");
+                String targetName = parts.length > 0 ? parts[0].trim() : "추천 아이템";
+                String reason = parts.length > 1 ? parts[1].trim() : "이유 없음";
+
+                ProductRecommendation recommendation = new ProductRecommendation(savedProduct, targetName, reason);
+                productRecommendationRepository.save(recommendation);
+            } else {
+                System.out.println("⚠️ DB에 추천할 다른 상품이 하나도 없습니다.");
+            }
 
         } catch (Exception e) {
-            System.out.println("⚠️ AI 추천 생성 실패 (상품만 등록됨): " + e.getMessage());
+            System.out.println("⚠️ AI 추천 실패: " + e.getMessage());
         }
 
         return convertToDto(savedProduct);
@@ -117,7 +134,7 @@ public class ProductService {
         return dto;
     }
 
-    // ▼▼▼  상세 조회 메서드
+    // 상세 조회 (AI 추천 포함)
     @Transactional(readOnly = true)
     public ProductResponseDto getProductDetail(Long id) {
         Product product = productRepository.findById(id)
@@ -126,10 +143,18 @@ public class ProductService {
         List<ProductRecommendation> recommendations = productRecommendationRepository.findByProductId(id);
 
         List<ProductResponseDto.AiRecommendation> recDtos = recommendations.stream()
-                .map(rec -> ProductResponseDto.AiRecommendation.builder()
-                        .targetProductName(rec.getTargetProductName())
-                        .reason(rec.getReason())
-                        .build())
+                .map(rec -> {
+                    // ⭐ [추가됨] 이름으로 실제 제품 ID 찾기
+                    Long targetId = productRepository.findByName(rec.getTargetProductName())
+                            .map(Product::getId)
+                            .orElse(null); // 만약 제품이 삭제됐다면 null
+
+                    return ProductResponseDto.AiRecommendation.builder()
+                            .targetProductName(rec.getTargetProductName())
+                            .reason(rec.getReason())
+                            .targetProductId(targetId) // ⭐ ID 넣어주기
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return ProductResponseDto.builder()

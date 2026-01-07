@@ -22,5 +22,6 @@ public class ProductResponseDto {
     public static class AiRecommendation {
         private String reason;
         private String targetProductName;
+        private Long targetProductId;
     }
 }

@@ -51,8 +51,23 @@ function ProductDetailPage() {
                                 <span className="ai-title">함께 사용하면 좋은 제품</span>
                             </div>
                             {product.recommendations.map((rec, index) => (
-                                <div key={index} className="ai-item">
-                                    <div className="ai-target">👉 추천: {rec.targetProductName}</div>
+                                <div
+                                    key={index}
+                                    className="ai-item"
+                                    // ⭐ [추가] 클릭 시 해당 제품으로 이동 (ID가 있을 때만)
+                                    onClick={() => rec.targetProductId && navigate(`/products/${rec.targetProductId}`)}
+                                    style={{
+                                        cursor: rec.targetProductId ? 'pointer' : 'default',
+                                        transition: 'background 0.2s'
+                                    }}
+                                    // 마우스 올렸을 때 효과 추가
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                                >
+                                    <div className="ai-target">
+                                        👉 추천: {rec.targetProductName}
+                                        {rec.targetProductId && <span style={{fontSize:'0.8em', marginLeft:'5px'}}> (보러가기 ↗)</span>}
+                                    </div>
                                     <span className="ai-reason">{rec.reason}</span>
                                 </div>
                             ))}
