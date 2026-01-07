@@ -11,6 +11,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/notices")
+@CrossOrigin(origins = "http://localhost:3000") // ⭐ 이게 있어야 리액트가 접속 가능!
 public class NoticeController {
 
     private final NoticeService noticeService;

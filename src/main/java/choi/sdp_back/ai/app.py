@@ -21,18 +21,32 @@ OLLAMA_MODEL = "gemma3:4b"
 SIMILARITY_THRESHOLD = 0.4
 
 try:
-    df = pd.read_csv(r"C:\KDT Project\KDT-Project\src\main\java\choi\sdp_back\ai\company_docs.csv")
+    # 1. 현재 이 실행 파일(app.py)이 있는 폴더 위치를 알아냅니다.
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 2. 그 폴더 안에 있는 'company_docs.csv' 경로를 자동으로 만듭니다.
+    csv_path = os.path.join(current_dir, "company_docs.csv")
+
+    # 3. 파일을 읽어옵니다.
+    df = pd.read_csv(csv_path)
+
     df.columns = ['Question', 'Answer']
-    print(f"✅ 챗봇 데이터 {len(df)}개 로드 완료")
+    print(f"✅ 챗봇 데이터 {len(df)}개 로드 완료 (경로: {csv_path})")
 
-    okt = Okt()
-    tfidf_vectorizer = TfidfVectorizer(tokenizer=okt.morphs)
-    tfidf_matrix = tfidf_vectorizer.fit_transform(df['Question'].astype(str))
-# 수정 후 (어떤 에러인지 정확히 출력해줍니다)
 except Exception as e:
-    print(f"❌ 진짜 에러 원인: {e}")
-    df = pd.DataFrame()
+    print(f"❌ 데이터 로드 실패: {e}")
+    df = pd.DataFrame(columns=['Question', 'Answer'])
 
+# 1. AI 모델(Vectorizer) 초기화
+tfidf_vectorizer = TfidfVectorizer()
+tfidf_matrix = None
+
+# 2. 데이터가 있으면 학습시키기 (이게 있어야 chat 함수가 작동함)
+if not df.empty:
+    tfidf_matrix = tfidf_vectorizer.fit_transform(df['Question'])
+    print("✅ TF-IDF 모델 학습 완료! (이제 채팅 가능)")
+else:
+    print("⚠️ 학습할 데이터가 없습니다.")
 # ==========================================
 # [설정] 얼굴 인식 모델 로드 (딥러닝 버전) ⭐
 # ==========================================

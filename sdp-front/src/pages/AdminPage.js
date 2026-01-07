@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import './AdminPage.css'; // 관리자 페이지 CSS (기존 파일)
 
 const API_BASE_URL = 'http://localhost:8080/api'; // 백엔드 서버 포트 확인
@@ -24,6 +25,9 @@ function AdminPage() {
     // 회사 정보(CompanyInfo) 관련 상태
     const [companyInfo, setCompanyInfo] = useState(null); // 현재 회사 정보
     const [editingCompanyInfo, setEditingCompanyInfo] = useState(null); // 수정 중인 회사 정보 상태
+
+    // ⭐ [추가] 로딩 상태 관리 (AI 분석 시간 동안 버튼 비활성화용)
+    const [isLoading, setIsLoading] = useState(false);
 
     // --- 데이터 로딩 (컴포넌트 마운트 시 한 번 실행) ---
     useEffect(() => {
@@ -59,30 +63,38 @@ function AdminPage() {
     const addProduct = async (e) => {
         e.preventDefault();
 
-        // 이미지 파일을 포함하여 전송하기 위해 FormData를 사용합니다.
-        const formData = new FormData();
+        // ⭐ 1. 로딩 시작 (버튼 비활성화)
+        setIsLoading(true);
 
-        // 백엔드 @RequestPart("product")와 매칭하기 위해 Blob으로 감싸서 전달
+        const formData = new FormData();
         formData.append("product", new Blob([JSON.stringify(newProduct)], {
             type: "application/json"
         }));
 
-        // 백엔드 @RequestPart("image")와 매칭
         if (newProductFile) {
             formData.append("image", newProductFile);
         }
 
         try {
+            // ⭐ 2. 백엔드 요청 (여기서 AI가 동작하느라 3~5초 걸림)
             await axios.post(`${API_BASE_URL}/products`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            alert('제품이 성공적으로 추가되었습니다.');
-            setNewProduct({ name: '', description: '', price: '' }); // 폼 초기화
-            setNewProductFile(null); // 파일 상태 초기화
-            fetchProducts(); // 목록 새로고침
+
+            alert('✅ 제품 등록 및 AI 분석 완료!'); // 멘트 수정
+            setNewProduct({ name: '', description: '', price: '' });
+            setNewProductFile(null);
+
+            // 파일 input 초기화 (Ref를 쓰지 않았으므로 강제 리셋 필요할 수 있음 - 일단 패스)
+            document.querySelector('input[type="file"]').value = "";
+
+            fetchProducts();
         } catch (error) {
-            alert('제품 추가에 실패했습니다. 파일을 선택했는지 확인해주세요.');
+            alert('제품 추가 실패! 백엔드 로그를 확인하세요.');
             console.error('제품 추가 실패:', error);
+        } finally {
+            // ⭐ 3. 무조건 로딩 끝내기
+            setIsLoading(false);
         }
     };
 
@@ -242,6 +254,13 @@ function AdminPage() {
         <div className="admin-page-container">
             <h1>관리자 페이지</h1>
 
+            {/* 주문 공정 관리 이동 버튼  */}
+            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+                <Link to="/admin/orders" className="admin-nav-btn">
+                    📦 주문 공정 관리 바로가기 &rarr;
+                </Link>
+            </div>
+
             {/* 회사 정보 관리 섹션 */}
             <section className="admin-section company-info-section">
                 <h2>회사 정보 관리</h2>
@@ -290,7 +309,17 @@ function AdminPage() {
                         <input type="file" accept="image/*" onChange={handleNewProductFileChange} required />
                     </div>
 
-                    <button type="submit">제품 추가</button>
+                    {/* 버튼 디자인 변경 */}
+                    <button
+                        type="submit"
+                        disabled={isLoading} // 로딩 중엔 클릭 방지
+                        style={{
+                            backgroundColor: isLoading ? '#6B7280' : '#F97316', // 로딩 중엔 회색
+                            cursor: isLoading ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {isLoading ? 'AI가 분석 중입니다... 🤖' : '제품 등록 (AI 자동추천)'}
+                    </button>
                 </form>
 
                 <div className="admin-list-container">

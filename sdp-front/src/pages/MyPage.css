@@ -1,0 +1,85 @@
+.mypage-container {
+    max-width: 600px;
+    margin: 50px auto;
+    color: #fff;
+}
+
+.mypage-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #111827; /* 배경이 흰색이면 글자는 어둡게, 배경이 어두우면 밝게 조정 */
+}
+
+/* 카드 스타일 */
+.mypage-card {
+    background-color: #1F2937;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.mypage-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid #374151;
+}
+
+.mypage-label {
+    color: #9CA3AF;
+    font-weight: bold;
+}
+
+.mypage-value {
+    color: #F3F4F6;
+}
+
+/* 입력 폼 스타일 */
+.mypage-form-header {
+    margin-bottom: 20px;
+    color: #F97316;
+}
+
+.mypage-input-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #D1D5DB;
+    font-size: 0.9em;
+}
+
+.mypage-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #4B5563;
+    background-color: #374151;
+    color: white;
+}
+
+.mypage-divider {
+    margin: 20px 0;
+    border: 0.5px solid #444;
+}
+
+/* 버튼들 */
+.mypage-btn-group {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn-base {
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-edit { background-color: #3B82F6; }
+.btn-withdraw { background-color: #EF4444; }
+.btn-save { background-color: #10B981; }
+.btn-cancel { background-color: #6B7280; }

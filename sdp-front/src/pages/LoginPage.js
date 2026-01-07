@@ -1,93 +1,45 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import './LoginPage.css';
 
 function LoginPage({ setIsAuthenticated }) {
-    const [inputs, setInputs] = useState({
-        memberId: '',
-        password: ''
-    });
-
+    const [inputs, setInputs] = useState({ memberId: '', password: '' });
     const navigate = useNavigate();
 
-    const handleChange = (e) => {
-        setInputs({ ...inputs, [e.target.name]: e.target.value });
-    };
+    const handleChange = (e) => setInputs({ ...inputs, [e.target.name]: e.target.value });
 
     const handleLogin = async (e) => {
         e.preventDefault();
-
-        if(!inputs.memberId || !inputs.password) {
-            alert("아이디와 비밀번호를 입력해주세요.");
-            return;
-        }
-
+        if(!inputs.memberId || !inputs.password) { alert("입력 필수"); return; }
         try {
             const response = await fetch('http://localhost:8080/api/members/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(inputs),
             });
-
             if (response.ok) {
                 const data = await response.json();
-
-                // 1. 정보 저장
                 localStorage.setItem("memberId", data.memberId);
                 localStorage.setItem("memberType", data.type);
-                localStorage.setItem("memberName", data.name); // ⭐ [추가] 이름 저장 (이게 있어야 상단에 뜸)
-
-                // 2. 상태 업데이트
+                localStorage.setItem("memberName", data.name);
                 setIsAuthenticated(true);
-
-                // 3. 이동
                 alert(`환영합니다! ${data.name}님`);
                 navigate('/');
-
             } else {
-                const errorText = await response.text();
-                alert("로그인 실패: " + errorText);
+                alert("로그인 실패: " + await response.text());
             }
-        } catch (error) {
-            console.error(error);
-            alert("서버 연결 오류");
-        }
+        } catch (error) { alert("서버 오류"); }
     };
 
     return (
-        <div style={{ maxWidth: '400px', margin: '100px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ textAlign: 'center', marginBottom: '20px', color: '#111827' }}>로그인</h2>
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <input
-                    name="memberId"
-                    placeholder="아이디"
-                    value={inputs.memberId}
-                    onChange={handleChange}
-                    style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '5px' }}
-                />
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="비밀번호"
-                    value={inputs.password}
-                    onChange={handleChange}
-                    style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '5px' }}
-                />
-                <button
-                    type="submit"
-                    style={{ padding: '12px', background: '#F97316', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}
-                >
-                    로그인하기
-                </button>
+        <div className="login-container">
+            <h2 className="login-title">로그인</h2>
+            <form onSubmit={handleLogin} className="login-form">
+                <input name="memberId" placeholder="아이디" value={inputs.memberId} onChange={handleChange} className="login-input" />
+                <input type="password" name="password" placeholder="비밀번호" value={inputs.password} onChange={handleChange} className="login-input" />
+                <button type="submit" className="login-btn">로그인하기</button>
             </form>
-
-            <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '15px', alignItems: 'center' }}>
-                <Link to="/members/join" style={{ color: '#6B7280', fontSize: '0.9em', textDecoration: 'none' }}>
-                    회원가입
-                </Link>
-                <span style={{ color: '#ddd' }}>|</span>
-                <Link to="/members/find" style={{ color: '#6B7280', fontSize: '0.9em', textDecoration: 'none' }}>
-                    아이디 / 비밀번호 찾기
-                </Link>
+            <div className="login-footer">
+                <Link to="/members/find" className="login-link">아이디 / 비밀번호 찾기</Link>
             </div>
         </div>
     );
