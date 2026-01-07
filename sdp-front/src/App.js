@@ -14,6 +14,8 @@ import LoginPage from './pages/LoginPage';
 import MyPage from './pages/MyPage';
 import FindPage from './pages/FindPage';
 import NoticePage from './pages/NoticePage'; // ✅ [추가] 공지사항 페이지 가져오기
+import ProductListPage from './pages/product/ProductListPage';
+import ProductDetailPage from './pages/product/ProductDetailPage';
 
 function App() {
     // 1. 로그인 상태 관리
@@ -131,6 +133,15 @@ function App() {
                                 <Link to="/notices" onClick={toggleMenu}>공지사항</Link>
                                 <Link to="#" style={{color:'#aaa', cursor:'default'}}>자주 묻는 질문</Link>
                             </div>
+                            <div style={styles.menuColumn}>
+                                <h3>제품/주문</h3>
+                                <Link to="/products" onClick={toggleMenu} style={{color: '#F97316', fontWeight: 'bold'}}>
+                                    📦 제품 목록 (AI 추천)
+                                </Link>
+                                <Link to="/track" onClick={toggleMenu}>배송 조회</Link>
+                                <Link to="#" style={{color:'#aaa', cursor:'default'}}>장바구니 (준비중)</Link>
+                                <Link to="#" style={{color:'#aaa', cursor:'default'}}>견적 요청 (준비중)</Link>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -154,6 +165,9 @@ function App() {
                     />
                     <Route path="/track" element={<OrderSearchPage />} />
                     <Route path="/admin/orders" element={<OrderManagePage />} />
+                    {/* ⭐ [NEW] 제품 페이지 경로 연결! */}
+                    <Route path="/products" element={<ProductListPage />} />
+                    <Route path="/products/:id" element={<ProductDetailPage />} />
                 </Routes>
             </main>
 

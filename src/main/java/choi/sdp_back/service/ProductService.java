@@ -1,7 +1,10 @@
 package choi.sdp_back.service;
 
 import choi.sdp_back.dto.ProductDto;
+import choi.sdp_back.dto.ProductResponseDto; // 추가됨
 import choi.sdp_back.entity.Product;
+import choi.sdp_back.entity.ProductRecommendation; // 추가됨
+import choi.sdp_back.repository.ProductRecommendationRepository; // 추가됨
 import choi.sdp_back.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -20,16 +23,20 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final String uploadPath = "C:/sdp_uploads/"; // 파일 저장 경로
+    // ▼▼▼ AI 관련 의존성 주입
+    private final ProductRecommendationRepository productRecommendationRepository;
+    private final AiService aiService;
 
-    @Transactional
+    private final String uploadPath = "C:/sdp_uploads/";
+
+    @Transactional(readOnly = true)
     public List<ProductDto> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
-    // 제품 생성 및 이미지 저장
+    // 제품 생성 + AI 분석 로직 복구
     @Transactional
     public ProductDto createProduct(ProductDto productDto, MultipartFile imageFile) throws IOException {
         String savedFileName = "";
@@ -43,10 +50,29 @@ public class ProductService {
         product.setPrice(productDto.getPrice());
         product.setImageFileName(savedFileName);
 
-        return convertToDto(productRepository.save(product));
+        // 1. 상품 저장
+        Product savedProduct = productRepository.save(product);
+
+        // ▼▼▼ AI 호출 로직
+        try {
+            String aiResult = aiService.getRecommendation(savedProduct.getName(), savedProduct.getDescription());
+
+            // 결과 파싱 (형식: "추천템 : 이유")
+            String[] parts = aiResult.split(":");
+            String targetName = parts.length > 0 ? parts[0].trim() : "추천 아이템";
+            String reason = parts.length > 1 ? parts[1].trim() : aiResult;
+
+            ProductRecommendation recommendation = new ProductRecommendation(savedProduct, targetName, reason);
+            productRecommendationRepository.save(recommendation);
+            System.out.println("✅ AI 추천 생성 완료: " + targetName);
+
+        } catch (Exception e) {
+            System.out.println("⚠️ AI 추천 생성 실패 (상품만 등록됨): " + e.getMessage());
+        }
+
+        return convertToDto(savedProduct);
     }
 
-    // 제품 수정 및 이미지 업데이트
     @Transactional
     public ProductDto updateProduct(Long id, ProductDto productDto, MultipartFile imageFile) throws IOException {
         Product product = productRepository.findById(id)
@@ -63,7 +89,6 @@ public class ProductService {
         return convertToDto(productRepository.save(product));
     }
 
-    // 이미지 물리적 저장 보조 메서드
     private String saveImage(MultipartFile imageFile) throws IOException {
         File uploadDir = new File(uploadPath);
         if (!uploadDir.exists()) uploadDir.mkdirs();
@@ -90,5 +115,30 @@ public class ProductService {
         dto.setImageFileName(product.getImageFileName());
         dto.setPrice(product.getPrice());
         return dto;
+    }
+
+    // ▼▼▼  상세 조회 메서드
+    @Transactional(readOnly = true)
+    public ProductResponseDto getProductDetail(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다. id=" + id));
+
+        List<ProductRecommendation> recommendations = productRecommendationRepository.findByProductId(id);
+
+        List<ProductResponseDto.AiRecommendation> recDtos = recommendations.stream()
+                .map(rec -> ProductResponseDto.AiRecommendation.builder()
+                        .targetProductName(rec.getTargetProductName())
+                        .reason(rec.getReason())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ProductResponseDto.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .price(product.getPrice())
+                .description(product.getDescription())
+                .imageUrl(product.getImageFileName())
+                .recommendations(recDtos)
+                .build();
     }
 }

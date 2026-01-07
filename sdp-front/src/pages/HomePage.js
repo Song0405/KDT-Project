@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // ⭐ 페이지 이동을 위해 추가
 import './HomePage.css';
 
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -24,8 +25,7 @@ const processSteps = [
     }
 ];
 
-// --- 독립적인 컴포넌트들 ---
-
+// 이미지 비율 유지 컴포넌트
 const ProductImageWithRatio = ({ product }) => {
     const [imageRatio, setImageRatio] = useState(75); // 기본값 4:3 (75%)
     const imgRef = useRef();
@@ -60,68 +60,20 @@ const ProductImageWithRatio = ({ product }) => {
     );
 };
 
-const ExpandedProductCard = ({ product, onClose }) => {
-    const [imageRatio, setImageRatio] = useState(75);
-    const imgRef = useRef();
-
-    useEffect(() => {
-        const img = imgRef.current;
-        if (img && product) {
-            const handleImageLoad = () => {
-                if (img.naturalWidth > 0) {
-                    setImageRatio((img.naturalHeight / img.naturalWidth) * 100);
-                }
-            };
-
-            if (img.complete) {
-                handleImageLoad();
-            } else {
-                img.onload = handleImageLoad;
-            }
-        }
-    }, [product]);
-
-    if (!product) {
-        return null;
-    }
-
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="expanded-product-card" onClick={(e) => e.stopPropagation()}>
-                <div className="expanded-image-container" style={{ paddingTop: `${imageRatio}%` }}>
-                    <img
-                        ref={imgRef}
-                        src={`${IMAGE_SERVER_URL}/${product.imageFileName}`}
-                        alt={product.name}
-                        className="expanded-product-image"
-                        onError={(e) => { e.target.src = 'https://via.placeholder.com/600x400?text=No+Image'; }}
-                    />
-                </div>
-                <div className="expanded-product-info">
-                    <h3>{product.name}</h3>
-                    <p className="expanded-product-description">{product.description}</p>
-                    <p className="expanded-product-price">{product.price?.toLocaleString()}원</p>
-                    <button onClick={onClose} className="close-button">닫기</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
 function HomePage() {
     const [companyInfo, setCompanyInfo] = useState(null);
-    // notices 관련 state 제거됨
     const [products, setProducts] = useState([]);
     const [error, setError] = useState(null);
-    const [expandedProduct, setExpandedProduct] = useState(null);
+
+    // ⭐ 페이지 이동 훅 사용
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const companyRes = await axios.get(`${API_BASE_URL}/company-info`);
                 setCompanyInfo(companyRes.data);
-                // 공지사항 로드 부분 제거됨
+
                 const productsRes = await axios.get(`${API_BASE_URL}/products`);
                 setProducts(productsRes.data);
                 setError(null);
@@ -143,7 +95,10 @@ function HomePage() {
                     <div className="hero-content">
                         <h1>{companyInfo.name}</h1>
                         <p>{companyInfo.description}</p>
-                        <a href="#products" className="hero-button">OUR PRODUCTS</a>
+                        {/* 버튼 클릭 시 제품 목록 페이지로 이동 */}
+                        <button onClick={() => navigate('/products')} className="hero-button" style={{cursor:'pointer'}}>
+                            OUR PRODUCTS
+                        </button>
                     </div>
                 </section>
             )}
@@ -169,7 +124,12 @@ function HomePage() {
                 {products.length > 0 ? (
                     <div className="product-grid">
                         {products.map(product => (
-                            <div key={product.id} className="product-card" onClick={() => setExpandedProduct(product)}>
+                            <div
+                                key={product.id}
+                                className="product-card"
+                                // ⭐⭐⭐ [수정됨] 클릭 시 상세 페이지로 이동! ⭐⭐⭐
+                                onClick={() => navigate(`/products/${product.id}`)}
+                            >
                                 {product.imageFileName && (
                                     <ProductImageWithRatio product={product} />
                                 )}
@@ -208,10 +168,6 @@ function HomePage() {
                     ))}
                 </div>
             </div>
-
-            {/* ⭐ [삭제됨] 하단 공지사항 섹션 제거 완료 */}
-
-            <ExpandedProductCard product={expandedProduct} onClose={() => setExpandedProduct(null)} />
         </div>
     );
 }
