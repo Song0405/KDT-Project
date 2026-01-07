@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // ✅ [수정] Link 추가
+import { useNavigate, Link } from 'react-router-dom';
 
 function LoginPage({ setIsAuthenticated }) {
     const [inputs, setInputs] = useState({
@@ -34,6 +34,7 @@ function LoginPage({ setIsAuthenticated }) {
                 // 1. 정보 저장
                 localStorage.setItem("memberId", data.memberId);
                 localStorage.setItem("memberType", data.type);
+                localStorage.setItem("memberName", data.name); // ⭐ [추가] 이름 저장 (이게 있어야 상단에 뜸)
 
                 // 2. 상태 업데이트
                 setIsAuthenticated(true);
@@ -79,8 +80,11 @@ function LoginPage({ setIsAuthenticated }) {
                 </button>
             </form>
 
-            {/* ✅ [추가] 계정 찾기 링크 */}
-            <div style={{ marginTop: '15px', textAlign: 'center' }}>
+            <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '15px', alignItems: 'center' }}>
+                <Link to="/members/join" style={{ color: '#6B7280', fontSize: '0.9em', textDecoration: 'none' }}>
+                    회원가입
+                </Link>
+                <span style={{ color: '#ddd' }}>|</span>
                 <Link to="/members/find" style={{ color: '#6B7280', fontSize: '0.9em', textDecoration: 'none' }}>
                     아이디 / 비밀번호 찾기
                 </Link>

@@ -1,192 +1,150 @@
-/* 기본 스타일 및 폰트 */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-
-body {
-    margin: 0;
-    font-family: 'Noto Sans KR', sans-serif;
-    background-color: #f8f9fa;
-    color: #343a40;
-    line-height: 1.7;
+/* --- 헤더 (포털 사이트 스타일) --- */
+.header {
+    background-color: #111827;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    border-bottom: 3px solid #F97316;
+    position: relative;
+    z-index: 1000;
 }
 
 .container {
-    max-width: 1100px;
+    width: 100%;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 1rem;
-}
-
-/* 헤더 */
-.header {
-    text-align: center;
-    padding: 2rem 0;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.header h1 {
-    font-size: 2.8rem;
-    margin: 0;
-    color: #212529;
-}
-
-/* 섹션 공통 스타일 */
-.section {
-    background: #ffffff;
-    padding: 2rem;
-    margin: 2rem 0;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.section h2 {
-    font-size: 2.2rem;
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    color: #0d6efd;
-}
-
-/* 제품 섹션 그리드 */
-.product-grid {
-    display: grid;
-    grid-template-columns: 1fr; /* 모바일: 1열 */
-    gap: 1.5rem;
-}
-
-/* 제품 카드 */
-.product-card {
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #f8f9fa;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-.product-card img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    cursor: pointer; /* 이미지 클릭 가능하도록 커서 변경 */
-}
-
-.product-card-body {
-    padding: 1.5rem;
-}
-
-.product-card-body h3 {
-    margin-top: 0;
-    font-size: 1.5rem;
-}
-
-/* 공지사항 목록 */
-.notice-list {
-    list-style: none;
-    padding: 0;
-}
-.notice-list li {
-    padding: 1rem;
-    border-bottom: 1px solid #e9ecef;
-}
-.notice-list li:last-child {
-    border-bottom: none;
-}
-.notice-list strong {
-    font-size: 1.1rem;
-    color: #343a40;
-}
-
-/* 로딩 및 에러 메시지 */
-.message {
-    text-align: center;
-    padding: 4rem;
-    font-size: 1.2rem;
-}
-.error-message {
-    color: #d9534f;
-}
-
-/* 푸터 */
-.footer {
-    text-align: center;
-    margin-top: 4rem;
-    padding: 2rem 0;
-    border-top: 1px solid #dee2e6;
-    color: #6c757d;
-}
-
-
-/* --- 반응형 디자인을 위한 미디어 쿼리 --- */
-
-/* 태블릿 사이즈 (768px 이상) */
-@media (min-width: 768px) {
-    .container {
-        padding: 2rem;
-    }
-    .product-grid {
-        grid-template-columns: repeat(2, 1fr); /* 태블릿: 2열 */
-    }
-}
-
-/* 데스크탑 사이즈 (1024px 이상) */
-@media (min-width: 1024px) {
-    .product-grid {
-        grid-template-columns: repeat(3, 1fr); /* 데스크탑: 3열 */
-    }
-}
-
-/* --- 모달(Modal) 창을 위한 스타일 추가 --- */
-
-/* 모달 배경 (반투명 검은색) */
-.modal-backdrop {
-    position: fixed; /* 화면 전체에 고정 */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* 반투명 검은색 */
+    padding: 0 20px;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    z-index: 1000; /* 다른 요소들보다 위에 있도록 설정 */
 }
 
-/* 모달 내용이 들어갈 흰색 박스 */
-.modal-content {
-    background: #ffffff;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    width: 90%;
-    max-width: 600px; /* 모달의 최대 너비 */
-    position: relative;
-    animation: fadeIn 0.3s ease-out;
+.logo {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #F3F4F6;
+    text-decoration: none;
+    letter-spacing: 1px;
 }
 
-/* 모달이 나타나는 애니메이션 */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+.topNav {
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    color: white;
 }
 
-/* 모달 닫기 버튼 */
-.modal-close-button {
-    position: absolute;
-    top: 15px;
-    right: 15px;
+.userInfo {
+    margin-right: 5px;
+    color: #F3F4F6;
+}
+
+.textLink {
+    color: #D1D5DB;
+    text-decoration: none;
+    margin: 0 5px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.textButton {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    color: #D1D5DB;
     cursor: pointer;
-    color: #888;
+    font-size: 1em;
+    margin: 0 5px;
+    padding: 0;
 }
-.modal-close-button:hover {
-    color: #000;
+
+.menuButton {
+    background: none;
+    border: 1px solid #6B7280;
+    border-radius: 4px;
+    color: white;
+    padding: 4px 10px;
+    cursor: pointer;
+    margin-left: 10px;
+    font-weight: bold;
+    font-size: 0.9em;
 }
+
+.divider {
+    color: #4B5563;
+    margin: 0 10px;
+    font-size: 0.8em;
+}
+
+/* --- 전체 메뉴 오버레이 스타일 --- */
+.fullMenuOverlay {
+    position: fixed;
+    top: 63px; /* 헤더(60px) + 보더(3px) 바로 아래 */
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 63px);
+    background-color: rgba(0,0,0,0.7); /* 뒷배경 어둡게 */
+    z-index: 999;
+    display: flex;
+    justify-content: center;
+}
+
+.fullMenuContainer {
+    width: 100%;
+    background-color: white; /* 메뉴판은 흰색 */
+    padding: 30px;
+    height: 350px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    color: #333;
+}
+
+.fullMenuHeader {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.menuGrid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 80px; /* 컬럼 간격 */
+}
+
+.menuColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* 메뉴 항목 간격 */
+}
+
+.disabled-link {
+    color: #aaa;
+    cursor: default;
+}
+
+/* --- 메인 & 푸터 --- */
+.main-content {
+    min-height: 80vh;
+}
+
+.footer {
+    text-align: center;
+    padding: 30px;
+    background-color: #111827;
+    color: #9CA3AF;
+    margin-top: 50px;
+    border-top: 1px solid #374151;
+}
+
