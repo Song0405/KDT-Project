@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    // ⭐ AI 추천 저장소와 AI 서비스 주입
+    //  AI 추천 저장소와 AI 서비스 주입
     private final ProductRecommendationRepository productRecommendationRepository;
     private final AiService aiService;
 
@@ -36,7 +36,7 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    // ⭐ 제품 생성 메서드 (여기를 수정!)
+    //  제품 생성 메서드
     @Transactional
     public ProductDto createProduct(ProductDto productDto, MultipartFile imageFile) throws IOException {
         String savedFileName = "";
@@ -95,6 +95,7 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("ID를 찾을 수 없음: " + id));
 
+        // 1. 정보 수정 (이름, 설명, 가격 등)
         product.setName(productDto.getName());
         product.setDescription(productDto.getDescription());
         product.setPrice(productDto.getPrice());
@@ -103,7 +104,43 @@ public class ProductService {
             product.setImageFileName(saveImage(imageFile));
         }
 
-        return convertToDto(productRepository.save(product));
+        // 2. 저장 (먼저 저장해야 바뀐 정보가 확정됨)
+        Product savedProduct = productRepository.save(product);
+
+        // 수정된 정보로 AI 추천 다시 받기
+        try {
+            // (1) 기존 추천 삭제
+            productRecommendationRepository.deleteByProductId(savedProduct.getId());
+
+            // (2) 다른 상품 목록 가져오기 (비교군)
+            List<String> allProductNames = productRepository.findAll().stream()
+                    .map(Product::getName)
+                    .filter(name -> !name.equals(savedProduct.getName()))
+                    .collect(Collectors.toList());
+
+            if (!allProductNames.isEmpty()) {
+                // (3) AI 재호출
+                String aiResult = aiService.getRecommendation(
+                        savedProduct.getName(),
+                        savedProduct.getDescription(),
+                        allProductNames
+                );
+
+                // (4) 결과 파싱 및 저장
+                String[] parts = aiResult.split(":");
+                String targetName = parts.length > 0 ? parts[0].trim() : "추천 아이템";
+                String reason = parts.length > 1 ? parts[1].trim() : aiResult;
+
+                ProductRecommendation recommendation = new ProductRecommendation(savedProduct, targetName, reason);
+                productRecommendationRepository.save(recommendation);
+
+                System.out.println("✅ (수정됨) AI 추천 갱신 완료: " + targetName);
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ AI 추천 갱신 실패: " + e.getMessage());
+        }
+
+        return convertToDto(savedProduct);
     }
 
     private String saveImage(MultipartFile imageFile) throws IOException {
@@ -144,7 +181,7 @@ public class ProductService {
 
         List<ProductResponseDto.AiRecommendation> recDtos = recommendations.stream()
                 .map(rec -> {
-                    // ⭐ [추가됨] 이름으로 실제 제품 ID 찾기
+                    //  이름으로 실제 제품 ID 찾기
                     Long targetId = productRepository.findByName(rec.getTargetProductName())
                             .map(Product::getId)
                             .orElse(null); // 만약 제품이 삭제됐다면 null
@@ -152,7 +189,7 @@ public class ProductService {
                     return ProductResponseDto.AiRecommendation.builder()
                             .targetProductName(rec.getTargetProductName())
                             .reason(rec.getReason())
-                            .targetProductId(targetId) // ⭐ ID 넣어주기
+                            .targetProductId(targetId) //  ID 넣어주기
                             .build();
                 })
                 .collect(Collectors.toList());

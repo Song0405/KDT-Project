@@ -26,8 +26,9 @@ function AdminPage() {
     const [companyInfo, setCompanyInfo] = useState(null); // 현재 회사 정보
     const [editingCompanyInfo, setEditingCompanyInfo] = useState(null); // 수정 중인 회사 정보 상태
 
-    // ⭐ [추가] 로딩 상태 관리 (AI 분석 시간 동안 버튼 비활성화용)
+    //  로딩 상태 관리 (AI 분석 시간 동안 버튼 비활성화용)
     const [isLoading, setIsLoading] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     // --- 데이터 로딩 (컴포넌트 마운트 시 한 번 실행) ---
     useEffect(() => {
@@ -115,31 +116,35 @@ function AdminPage() {
         setEditingProductFile(e.target.files[0]);
     };
 
-    // 제품 수정 완료 (FormData 방식)
+    // 제품 수정 완료
     const updateProduct = async (e) => {
         e.preventDefault();
         if (!editingProduct) return;
 
-        const formData = new FormData();
-        formData.append("product", new Blob([JSON.stringify(editingProduct)], {
-            type: "application/json"
-        }));
+        // 1. 로딩 시작 (버튼 비활성화)
+        setIsUpdating(true);
 
+        const formData = new FormData();
+        formData.append("product", new Blob([JSON.stringify(editingProduct)], { type: "application/json" }));
         if (editingProductFile) {
             formData.append("image", editingProductFile);
         }
 
         try {
+            // 2. 서버 요청 (AI 분석 때문에 시간 걸림)
             await axios.put(`${API_BASE_URL}/products/${editingProduct.id}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            alert('제품이 성공적으로 수정되었습니다.');
+            alert('✅ 제품 수정 및 AI 추천 갱신 완료!');
             setEditingProduct(null);
             setEditingProductFile(null);
             fetchProducts();
         } catch (error) {
             alert('제품 수정에 실패했습니다.');
-            console.error('제품 수정 실패:', error);
+            console.error(error);
+        } finally {
+            // 3. 로딩 끝 (무조건 실행)
+            setIsUpdating(false);
         }
     };
 
@@ -334,15 +339,32 @@ function AdminPage() {
                                             <textarea name="description" value={editingProduct.description} onChange={handleEditingProductChange} required />
                                             <input type="number" name="price" value={editingProduct.price} onChange={handleEditingProductChange} required />
 
-                                            {/* 수정 시에도 이미지 변경이 가능하도록 파일 인풋 추가 */}
-                                            <div className="file-input-group" style={{ margin: '10px 0', textAlign: 'left' }}>
-                                                <label style={{ color: '#ff7a3c' }}>이미지 변경(선택):</label>
+                                            <div style={{margin:'10px 0'}}>
+                                                <label style={{color:'#F97316'}}>이미지 변경(선택): </label>
                                                 <input type="file" accept="image/*" onChange={handleEditingProductFileChange} />
                                             </div>
 
                                             <div className="form-actions">
-                                                <button type="submit">저장</button>
-                                                <button type="button" onClick={() => setEditingProduct(null)}>취소</button>
+                                                {/* ⭐⭐⭐ [버튼 스타일 변경] 로딩 중이면 회색 & 비활성화 ⭐⭐⭐ */}
+                                                <button
+                                                    type="submit"
+                                                    disabled={isUpdating}
+                                                    style={{
+                                                        backgroundColor: isUpdating ? '#6B7280' : '#047857',
+                                                        cursor: isUpdating ? 'not-allowed' : 'pointer',
+                                                        color: 'white'
+                                                    }}
+                                                >
+                                                    {isUpdating ? '수정 중... ⏳' : '저장'}
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditingProduct(null)}
+                                                    disabled={isUpdating} // 수정 중엔 취소도 막기
+                                                >
+                                                    취소
+                                                </button>
                                             </div>
                                         </form>
                                     ) : (
