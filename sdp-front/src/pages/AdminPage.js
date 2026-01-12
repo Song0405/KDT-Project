@@ -9,7 +9,6 @@ const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 function AdminPage() {
     // --- 1. 상태 관리 (States) ---
     const [products, setProducts] = useState([]);
-    // category 필드 추가 (기본값: KEYBOARD)
     const [newProduct, setNewProduct] = useState({
         name: '', description: '', price: '', category: 'KEYBOARD'
     });
@@ -21,17 +20,13 @@ function AdminPage() {
     const [newNotice, setNewNotice] = useState({ title: '', content: '' });
     const [editingNotice, setEditingNotice] = useState(null);
 
-    const [companyInfo, setCompanyInfo] = useState(null);
-    const [editingCompanyInfo, setEditingCompanyInfo] = useState(null);
-
-    const [isLoading, setIsLoading] = useState(false); // 제품 등록 로딩
-    const [isUpdating, setIsUpdating] = useState(false); // 제품 수정 로딩
+    const [isLoading, setIsLoading] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     // --- 2. 초기 데이터 로드 ---
     useEffect(() => {
         fetchProducts();
         fetchNotices();
-        fetchCompanyInfo();
     }, []);
 
     const fetchProducts = async () => {
@@ -44,17 +39,11 @@ function AdminPage() {
         catch (err) { console.error('공지 로드 실패', err); }
     };
 
-    const fetchCompanyInfo = async () => {
-        try { const res = await axios.get(`${API_BASE_URL}/company-info`); setCompanyInfo(res.data); }
-        catch (err) { console.error('회사정보 로드 실패', err); }
-    };
-
-    // --- 3. 제품 관리 함수 (CRUD) ---
+    // --- 3. 제품 관리 함수 ---
     const handleAddProduct = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         const formData = new FormData();
-        // newProduct 객체(카테고리 포함)를 Blob으로 변환
         formData.append("product", new Blob([JSON.stringify(newProduct)], { type: "application/json" }));
         if (newProductFile) formData.append("image", newProductFile);
 
@@ -130,18 +119,6 @@ function AdminPage() {
         } catch (err) { alert('공지 삭제 실패'); }
     };
 
-    // --- 5. 회사 정보 관리 함수 ---
-    const handleUpdateCompany = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await axios.put(`${API_BASE_URL}/company-info`, editingCompanyInfo);
-            setCompanyInfo(res.data);
-            setEditingCompanyInfo(null);
-            alert('✅ 브랜드 프로필이 업데이트되었습니다.');
-        } catch (err) { alert('업데이트 실패'); }
-    };
-
-    // --- 6. JSX 렌더링 ---
     return (
         <div className="admin-dashboard">
             <header className="admin-hero">
@@ -150,30 +127,8 @@ function AdminPage() {
             </header>
 
             <div className="admin-grid">
-                {/* 왼쪽 컬럼: 설정 및 등록 */}
+                {/* 왼쪽 컬럼: 제품 및 공지 등록 */}
                 <div className="admin-col">
-                    <section className="admin-section">
-                        <h2>🏢 브랜드 프로필</h2>
-                        {companyInfo && (
-                            editingCompanyInfo ? (
-                                <form onSubmit={handleUpdateCompany} className="admin-form">
-                                    <input type="text" value={editingCompanyInfo.name} onChange={(e)=>setEditingCompanyInfo({...editingCompanyInfo, name: e.target.value})} placeholder="회사 이름" />
-                                    <textarea value={editingCompanyInfo.description} onChange={(e)=>setEditingCompanyInfo({...editingCompanyInfo, description: e.target.value})} placeholder="브랜드 설명" />
-                                    <div className="form-actions">
-                                        <button type="submit" className="btn-save-small">저장</button>
-                                        <button type="button" className="btn-cancel-small" onClick={() => setEditingCompanyInfo(null)}>취on</button>
-                                    </div>
-                                </form>
-                            ) : (
-                                <div className="info-preview-card">
-                                    <p><strong>브랜드명:</strong> {companyInfo.name}</p>
-                                    <p className="dim-text">{companyInfo.description}</p>
-                                    <button className="btn-edit-outline" onClick={() => setEditingCompanyInfo(companyInfo)}>프로필 수정</button>
-                                </div>
-                            )
-                        )}
-                    </section>
-
                     <section className="admin-section">
                         <h2>✨ 신규 제품 등록</h2>
                         <form onSubmit={handleAddProduct} className="admin-form">
@@ -205,16 +160,16 @@ function AdminPage() {
                     </section>
 
                     <section className="admin-section">
-                        <h2>📢 새 공지사항</h2>
+                        <h2>📢 새 공지사항 작성</h2>
                         <form onSubmit={handleAddNotice} className="admin-form">
-                            <input type="text" placeholder="제목" value={newNotice.title} onChange={(e)=>setNewNotice({...newNotice, title: e.target.value})} required />
-                            <textarea placeholder="내용" value={newNotice.content} onChange={(e)=>setNewNotice({...newNotice, content: e.target.value})} required />
-                            <button type="submit" className="btn-primary">공지 등록</button>
+                            <input type="text" placeholder="공지사항 제목" value={newNotice.title} onChange={(e)=>setNewNotice({...newNotice, title: e.target.value})} required />
+                            <textarea placeholder="내용을 입력하세요" value={newNotice.content} onChange={(e)=>setNewNotice({...newNotice, content: e.target.value})} required />
+                            <button type="submit" className="btn-primary">공지사항 등록</button>
                         </form>
                     </section>
                 </div>
 
-                {/* 오른쪽 컬럼: 목록 및 아카이브 */}
+                {/* 오른쪽 컬럼: 목록 관리 */}
                 <div className="admin-col">
                     <section className="admin-section list-section">
                         <h2>📦 제품 라이브러리 ({products.length})</h2>
