@@ -118,27 +118,6 @@ function HomePage() {
 
             {error && <div className="error-message">{error}</div>}
 
-            {/* 2. 브랜드 스토리 섹션 */}
-            <section className="info-section brand-intro">
-                <div className="section-title-area">
-                    <h2>Our Philosophy</h2>
-                    <p className="subtitle">루트 스테이션이 지향하는 가치</p>
-                </div>
-                {companyInfo ? (
-                    <div className="brand-details">
-                        <p className="main-desc">
-                            루트 스테이션은 개발자, 디자이너, 크리에이터 등 모든 '지식 노동자'의 생산성을 연구합니다.
-                            {companyInfo.description}
-                        </p>
-                        <div className="contact-info-grid">
-                            <div className="info-item"><span>Address</span>{companyInfo.address}</div>
-                            <div className="info-item"><span>Email</span>{companyInfo.email}</div>
-                            <div className="info-item"><span>Tel</span>{companyInfo.phone}</div>
-                        </div>
-                    </div>
-                ) : <div className="loading-text">브랜드 스토리를 불러오는 중...</div>}
-            </section>
-
             {/* 3. 주요 제품 섹션 (Gears) */}
             <section id="products" className="info-section">
                 <div className="section-header">
