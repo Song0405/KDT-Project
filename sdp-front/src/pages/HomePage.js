@@ -3,27 +3,35 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
 
-// 백엔드 API 및 이미지 서버 설정 (환경에 맞게 수정 가능)
+// 백엔드 API 및 이미지 서버 설정
 const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
-// 셋업 가이드 데이터
+// 셋업 가이드 데이터 (한국어 전문 버전)
 const processSteps = [
     {
-        id: 1, title: "Curation", icon: "🔍",
-        details: ["사용자 데스크 환경 분석", "최적의 장비 선별", "데스크테리어 트렌드 반영"]
+        id: 1,
+        title: "맞춤 큐레이션",
+        icon: "🔍",
+        details: ["사용자 데스크 환경 정밀 분석", "최적의 하이엔드 장비 선별", "최신 데스크테리어 트렌드 반영"]
     },
     {
-        id: 2, title: "Compatibility", icon: "⚙️",
-        details: ["장비 간 하드웨어 호환성 체크", "케이블 정리 및 공간 효율 계산", "모니터 암 및 거치대 매칭"]
+        id: 2,
+        title: "호환성 검토",
+        icon: "⚙️",
+        details: ["하드웨어 간 연결 및 호환성 검증", "데스크 공간 효율 및 동선 계산", "모니터 암 및 거치대 최적 배치"]
     },
     {
-        id: 3, title: "Customizing", icon: "✨",
-        details: ["사용자 커스텀 키보드 구성", "무드 조명 및 데스크 매트 조합", "나만의 고유한 워크스테이션"]
+        id: 3,
+        title: "개인 커스터마이징",
+        icon: "✨",
+        details: ["사용자 맞춤형 키보드 빌드", "무드 조명 및 데스크 매트 스타일링", "세상에 하나뿐인 독창적인 워크스테이션"]
     },
     {
-        id: 4, title: "Performance", icon: "🚀",
-        details: ["몰입도 극대화를 위한 세팅", "생산성 향상 수치 확인", "지속적인 셋업 업그레이드 가이드"]
+        id: 4,
+        title: "퍼포먼스 최적화",
+        icon: "🚀",
+        details: ["업무 몰입도 극대화를 위한 환경 세팅", "워크플로우 및 생산성 향상 가이드", "지속적인 셋업 업그레이드 지원"]
     }
 ];
 
@@ -68,11 +76,10 @@ function HomePage() {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    // 데이터 호출
+    // 데이터 호출 (Spring Boot 백엔드 연동)
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 회사 정보 및 제품 리스트 동시 호출
                 const [companyRes, productsRes] = await Promise.all([
                     axios.get(`${API_BASE_URL}/company-info`),
                     axios.get(`${API_BASE_URL}/products`)
@@ -90,7 +97,7 @@ function HomePage() {
 
     return (
         <div className="home-page-container">
-            {/* 1. 히어로 섹션 (사진 제외, 타이포그래피 & 그래픽 기반) */}
+            {/* 1. 히어로 섹션 */}
             <section className="hero-section">
                 <div className="hero-background-effects">
                     <div className="glow-circle top-left"></div>
@@ -118,7 +125,7 @@ function HomePage() {
 
             {error && <div className="error-message">{error}</div>}
 
-            {/* 3. 주요 제품 섹션 (Gears) */}
+            {/* 2. 주요 제품 섹션 */}
             <section id="products" className="info-section">
                 <div className="section-header">
                     <h2>Featured Gears</h2>
@@ -151,7 +158,7 @@ function HomePage() {
                 ) : <div className="loading-text">새로운 장비들이 입고될 예정입니다.</div>}
             </section>
 
-            {/* 4. 셋업 가이드 섹션 */}
+            {/* 3. 셋업 가이드 섹션 (한국어 적용) */}
             <section className="info-section process-section">
                 <div className="section-header">
                     <h2>The Setup Guide</h2>
@@ -176,7 +183,7 @@ function HomePage() {
                 </div>
             </section>
 
-            {/* 5. 푸터 */}
+            {/* 4. 푸터 */}
             <footer className="home-footer">
                 <p>&copy; 2026 ROOT STATION. All Rights Reserved.</p>
             </footer>
