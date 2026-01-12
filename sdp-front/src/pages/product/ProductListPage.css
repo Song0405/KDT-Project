@@ -1,0 +1,196 @@
+/* ROOT STATION PRODUCT LIST THEME */
+.product-list-wrapper {
+    background-color: #050505;
+    color: #fff;
+    min-height: 100vh;
+    padding: 80px 5%;
+}
+
+.list-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.list-title {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    background: linear-gradient(180deg, #fff 0%, #666 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.list-title .highlight {
+    color: #00d4ff;
+    -webkit-text-fill-color: #00d4ff;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.list-subtitle {
+    color: #555;
+    font-size: 1rem;
+    margin-top: 10px;
+}
+
+/* 검색 및 필터 */
+.filter-container {
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.search-bar {
+    width: 100%;
+    max-width: 500px;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 15px 25px;
+    background-color: #111;
+    border: 1px solid #222;
+    border-radius: 30px;
+    color: #fff;
+    outline: none;
+    transition: 0.3s;
+}
+
+.search-bar input:focus {
+    border-color: #00d4ff;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+}
+
+.category-tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.cat-tab {
+    background: transparent;
+    border: 1px solid #222;
+    color: #666;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.cat-tab.active, .cat-tab:hover {
+    color: #00d4ff;
+    border-color: #00d4ff;
+}
+
+/* 그리드 및 카드 */
+.gear-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    margin-top: 50px;
+}
+
+.gear-card {
+    background-color: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.gear-card:hover {
+    transform: translateY(-10px);
+    border-color: #00d4ff;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.gear-img-container {
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+    background-color: #000;
+}
+
+.gear-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: 0.5s;
+}
+
+.gear-card:hover .gear-img {
+    transform: scale(1.1);
+    opacity: 0.5;
+}
+
+.card-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: 0.3s;
+}
+
+.card-overlay span {
+    color: #00d4ff;
+    border: 1px solid #00d4ff;
+    padding: 8px 16px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.gear-card:hover .card-overlay {
+    opacity: 1;
+}
+
+.gear-content {
+    padding: 25px;
+}
+
+.gear-category {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: #bb86fc;
+    margin-bottom: 10px;
+}
+
+.gear-name {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+.gear-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.gear-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #00d4ff;
+}
+
+.gear-action-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #fff;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* 로딩 및 에러 */
+.loading-screen, .no-gear-message {
+    text-align: center;
+    padding: 100px;
+    color: #333;
+    font-weight: bold;
+    letter-spacing: 2px;
+}

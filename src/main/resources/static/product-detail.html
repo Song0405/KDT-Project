@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>상품 상세</title>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f9f9f9; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+        /* 상단: 이미지와 정보 */
+        .top-section { display: flex; gap: 30px; margin-bottom: 40px; }
+        .img-area { flex: 1; height: 400px; background: #eee; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center;}
+        .img-area img { max-width: 100%; max-height: 100%; }
+        .info-area { flex: 1; }
+
+        .badge { background: #333; color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8em; }
+        h1 { margin: 10px 0; font-size: 2em; }
+        .price { font-size: 1.8em; color: #e74c3c; font-weight: bold; margin-bottom: 20px; }
+        .desc { color: #666; line-height: 1.6; margin-bottom: 30px; }
+
+        .btn-buy { width: 100%; padding: 15px; background: #e74c3c; color: white; border: none; font-size: 1.2em; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .btn-back { margin-bottom: 20px; cursor: pointer; background: none; border: none; color: #666; }
+
+        /* 하단: AI 추천 섹션 (강조) */
+        .ai-section {
+            background: linear-gradient(135deg, #f6f8fd 0%, #f1f4ff 100%);
+            border: 2px solid #dae1f5;
+            border-radius: 12px; padding: 25px;
+            position: relative;
+        }
+        .ai-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .ai-badge { background: #4a69bd; color: white; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+
+        .recommend-item {
+            background: white; padding: 15px; border-radius: 8px;
+            border-left: 5px solid #4a69bd; margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .rec-name { font-weight: bold; font-size: 1.1em; color: #333; }
+        .rec-reason { color: #555; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="btn-back" onclick="history.back()">← 목록으로 돌아가기</button>
+
+    <div class="top-section">
+        <div class="img-area">
+            <img id="p-img" src="" alt="상품 이미지">
+        </div>
+        <div class="info-area">
+            <span class="badge">NEW</span>
+            <h1 id="p-name">상품명 로딩중...</h1>
+            <div class="price" id="p-price">0원</div>
+            <p class="desc" id="p-desc">상품 설명을 불러오는 중입니다.</p>
+            <button class="btn-buy" onclick="alert('구매 기능은 아직입니다!')">바로 구매하기</button>
+        </div>
+    </div>
+
+    <div class="ai-section" id="ai-container" style="display: none;">
+        <div class="ai-header">
+            <span class="ai-badge">AI ✨</span>
+            <h3 style="margin:0;">이 제품과 함께하면 더 좋아요!</h3>
+        </div>
+        <div id="ai-list">
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. URL에서 ?id=1 값을 읽어옵니다.
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+
+    if(productId) {
+        loadProductDetail(productId);
+    } else {
+        alert("잘못된 접근입니다.");
+        location.href = 'product-list.html';
+    }
+
+    async function loadProductDetail(id) {
+        try {
+            // 2. API 호출
+            const response = await fetch(`http://localhost:8080/api/products/${id}`);
+            if (!response.ok) throw new Error("상품 없음");
+
+            const data = await response.json();
+
+            // 3. 데이터 채우기
+            document.getElementById('p-name').textContent = data.name;
+            document.getElementById('p-price').textContent = data.price.toLocaleString() + "원";
+            document.getElementById('p-desc').textContent = data.description;
+
+            const imgTag = document.getElementById('p-img');
+            if (data.imageUrl) {
+                imgTag.src = data.imageUrl.startsWith('http') ? data.imageUrl : '/uploads/' + data.imageUrl;
+            }
+
+            // 4. AI 추천 정보 렌더링
+            const aiContainer = document.getElementById('ai-container');
+            const aiList = document.getElementById('ai-list');
+
+            if (data.recommendations && data.recommendations.length > 0) {
+                aiContainer.style.display = 'block'; // 숨겨둔 박스 보이기
+                aiList.innerHTML = '';
+
+                data.recommendations.forEach(rec => {
+                    const html = `
+                            <div class="recommend-item">
+                                <div class="rec-name">👉 추천: ${rec.targetProductName}</div>
+                                <div class="rec-reason">${rec.reason}</div>
+                            </div>
+                        `;
+                    aiList.innerHTML += html;
+                });
+            }
+
+        } catch (error) {
+            alert("상품 정보를 불러오는데 실패했습니다.");
+            console.error(error);
+        }
+    }
+</script>
+</body>
+</html>

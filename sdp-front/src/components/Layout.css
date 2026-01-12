@@ -1,0 +1,167 @@
+/* --- 공통 변수 (HomePage.css와 동기화) --- */
+:root {
+    --bg-deep: #050505;
+    --bg-border: #222222;
+    --text-primary: #ffffff;
+    --text-dim: #555555;
+    --point-cyan: #00d4ff;
+    --point-purple: #bb86fc;
+    --header-height: 70px;
+}
+
+/* --- 헤더 스타일 --- */
+.site-header {
+    background-color: rgba(5, 5, 5, 0.9); /* 투명도 있는 블랙 */
+    border-bottom: 1px solid var(--bg-border);
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px); /* 뒤 배경 블러 */
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.brand-logo {
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    cursor: pointer;
+    /* 텍스트 그라데이션 효과 */
+    background: linear-gradient(180deg, #ffffff 0%, #777777 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: opacity 0.3s;
+}
+
+.brand-logo:hover {
+    opacity: 0.8;
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.nav-link {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    opacity: 0.6;
+    text-transform: uppercase;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    opacity: 1;
+    color: var(--point-cyan);
+}
+
+.nav-link.highlight {
+    color: var(--point-cyan);
+    opacity: 0.9;
+}
+
+.menu-button {
+    background: #111;
+    border: 1px solid var(--bg-border);
+    color: var(--text-primary);
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+}
+
+.menu-button:hover {
+    border-color: var(--point-cyan);
+    background: #1a1a1a;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+/* --- 푸터 스타일 --- */
+.site-footer {
+    background-color: var(--bg-deep);
+    border-top: 1px solid var(--bg-border);
+    padding: 40px 0;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-top: auto; /* 페이지 내용이 적어도 하단에 고정되게 도움 */
+}
+
+.footer-content {
+    width: 90%;
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.copyright strong {
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.footer-links span {
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.footer-links span:not(.separator):hover {
+    color: var(--text-primary);
+}
+
+.separator {
+    color: #222;
+    cursor: default !important;
+}
+
+/* --- 채팅 버튼 (Floating) --- */
+.chat-button {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--point-cyan);
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+    z-index: 1000;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-button:hover {
+    transform: scale(1.1) rotate(5deg);
+    background: #00e5ff;
+}

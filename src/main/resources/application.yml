@@ -8,7 +8,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     # To be extra safe, explicitly tell Hibernate which SQL dialect to use
     database-platform: org.hibernate.dialect.OracleDialect # <-- ADD THIS LINE
     show-sql: true

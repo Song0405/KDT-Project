@@ -2,6 +2,7 @@ package choi.sdp_back.controller;
 
 import choi.sdp_back.dto.ProductDto;
 import choi.sdp_back.service.ProductService;
+import choi.sdp_back.dto.ProductResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000") // CORS 개별 허용
+@CrossOrigin(origins = "http://localhost:3000")
 public class ProductController {
 
     private final ProductService productService;
@@ -24,10 +25,21 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponseDto> getProductDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductDetail(id));
+    }
+
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ProductDto> createProduct(
             @RequestPart("product") ProductDto productDto,
             @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+
+        // 🔍 [범인 검거용 로그 1] 컨트롤러에 도착한 데이터 확인
+        System.out.println("=== [POST] 제품 등록 요청 도착 ===");
+        System.out.println("제품명: " + productDto.getName());
+        System.out.println("카테고리: " + productDto.getCategory()); // ⭐ 여기서 null이 찍히면 React 문제입니다.
+
         return ResponseEntity.ok(productService.createProduct(productDto, image));
     }
 
@@ -36,6 +48,11 @@ public class ProductController {
             @PathVariable Long id,
             @RequestPart("product") ProductDto productDto,
             @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+
+        // 🔍 [범인 검거용 로그 2] 수정 요청 데이터 확인
+        System.out.println("=== [PUT] 제품 수정 요청 도착 (ID: " + id + ") ===");
+        System.out.println("수정될 카테고리: " + productDto.getCategory()); // ⭐ 여기서 null이면 React 수정 로직 문제.
+
         return ResponseEntity.ok(productService.updateProduct(id, productDto, image));
     }
 

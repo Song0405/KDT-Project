@@ -1,428 +1,338 @@
-/* frontend/src/pages/HomePage.css */
+/* ROOT STATION DARK THEME */
+:root {
+    --bg-deep: #050505;
+    --bg-card: #111111;
+    --bg-border: #222222;
+    --text-primary: #ffffff;
+    --text-secondary: #888888;
+    --text-dim: #555555;
+    --point-cyan: #00d4ff;
+    --point-purple: #bb86fc;
+    --transition-smooth: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
 
-/* --- 기본 스타일 --- */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-
-body {
+* {
+    box-sizing: border-box;
     margin: 0;
-    font-family: 'Noto Sans KR', sans-serif;
-    background-color: #1F2937;
-    color: #E5E7EB;
-    line-height: 1.6;
+    padding: 0;
 }
 
 .home-page-container {
-    margin: 0;
-    padding: 0;
+    background-color: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
 }
 
-.error-message {
-    background-color: #4B1A1A;
-    color: #FECACA;
-    border: 1px solid #DC2626;
-    padding: 1.5rem;
-    margin: 2rem auto;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: bold;
-    max-width: 800px;
-}
-
-/* --- 히어로 섹션 --- */
+/* --- 히어로 섹션 (NO-IMAGE) --- */
 .hero-section {
-    background-color: #111827;
-    text-align: center;
-    padding: 0;
     position: relative;
-    height: 60vh;
-    min-height: 400px;
+    height: 90vh;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    background-color: #000;
 }
 
-.hero-image {
+.hero-background-effects {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.glow-circle {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.12;
+}
+
+.top-left { top: -150px; left: -150px; background: var(--point-cyan); }
+.bottom-right { bottom: -150px; right: -150px; background: var(--point-purple); }
+
+.grid-overlay {
+    position: absolute;
+    inset: 0;
+    background-image:
+            linear-gradient(to right, #ffffff05 1px, transparent 1px),
+            linear-gradient(to bottom, #ffffff05 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(circle at center, black, transparent 85%);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.hero-tagline {
+    display: block;
+    font-family: 'Courier New', monospace;
+    color: var(--point-cyan);
+    letter-spacing: 4px;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.8;
+}
+
+.brand-logo-text {
+    font-size: clamp(3rem, 10vw, 7rem); /* 반응형 폰트 크기 */
+    font-weight: 900;
+    letter-spacing: -3px;
+    line-height: 1;
+    background: linear-gradient(180deg, #ffffff 0%, #444444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtext {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    margin: 2rem 0 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.hero-button {
+    padding: 16px 40px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: var(--transition-smooth);
+}
+
+.hero-button.primary {
+    background: var(--point-cyan);
+    border: none;
+    color: #000;
+}
+
+.hero-button.primary:hover {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.hero-button.secondary {
+    background: transparent;
+    border: 1px solid #333;
+    color: #fff;
+}
+
+.hero-button.secondary:hover {
+    border-color: #fff;
+}
+
+/* --- 섹션 공통 스타일 --- */
+.info-section {
+    padding: 100px 10%;
+    border-bottom: 1px solid var(--bg-border);
+}
+
+.section-header {
+    margin-bottom: 60px;
+    text-align: center;
+}
+
+.info-section h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.subtitle, .section-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+/* --- 브랜드 스토리 --- */
+.brand-intro {
+    background-color: #080808;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.main-desc {
+    font-size: 1.4rem;
+    max-width: 800px;
+    margin: 0 auto 50px;
+    color: var(--text-primary);
+    word-break: keep-all;
+}
+
+.contact-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.info-item span {
+    display: block;
+    color: var(--point-cyan);
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+/* --- 제품 카드 레이아웃 --- */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 40px;
+}
+
+.product-card {
+    background: var(--bg-card);
+    border: 1px solid var(--bg-border);
+    border-radius: 8px;
+    transition: var(--transition-smooth);
+    cursor: pointer;
+}
+
+.product-card:hover {
+    border-color: var(--point-cyan);
+    transform: translateY(-10px);
+}
+
+.product-image-container {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+}
+
+.product-image {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    z-index: 1;
-    filter: brightness(0.7);
+    transition: transform 0.6s ease;
 }
 
-.hero-content {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    max-width: 900px;
-    margin: 0 auto;
-    color: #FFFFFF;
+.product-card:hover .product-image {
+    transform: scale(1.05);
 }
-
-.hero-content h1 {
-    font-size: 3.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
-}
-
-.hero-content p {
-    font-size: 1.25rem;
-    max-width: 600px;
-    margin: 0 auto 2rem auto;
-    color: #D1D5DB;
-}
-
-.hero-button {
-    background-color: #F97316;
-    color: #FFFFFF;
-    padding: 1rem 2rem;
-    border: none;
-    border-radius: 5px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    text-decoration: none;
-    transition: background-color 0.3s ease;
-}
-.hero-button:hover {
-    background-color: #EA580C;
-}
-
-/* --- 정보 섹션 --- */
-.info-section {
-    max-width: 1100px;
-    margin: 4rem auto;
-    padding: 2.5rem;
-    background-color: #111827;
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-.info-section h2 {
-    font-size: 2.5rem;
-    color: #FFFFFF;
-    border-bottom: 2px solid #F97316;
-    padding-bottom: 1rem;
-    margin-bottom: 2rem;
-}
-
-/* --- 제품 그리드 & 카드 --- */
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
-}
-
-.product-card {
-    background-color: #374151;
-    border: 1px solid #4B5563;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-}
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 10px 25px rgba(249, 115, 22, 0.2);
-}
-
-/* 이미지 비율 유지를 위한 컨테이너 */
-.product-image-container,
-.expanded-image-container { /* 모달 이미지 컨테이너도 동일 적용 */
-    position: relative;
-    width: 100%;
-    height: 0; /* JS에서 padding-top으로 높이 제어 */
-    overflow: hidden;
-    background-color: #1F2937; /* 이미지가 로드되기 전이나 투명할 경우 배경색 */
-}
-
-.product-image,
-.expanded-product-image { /* 모달 이미지도 동일 적용 */
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* 이미지가 잘리지 않고 컨테이너 안에 다 보이도록 */
-    display: block;
-    border-bottom: 1px solid #4B5563; /* 작은 카드 이미지에만 보일 것 */
-}
-
 
 .product-card-body {
-    padding: 1.5rem;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+    padding: 25px;
+}
+
+.category-tag {
+    color: var(--point-purple);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
 }
 
 .product-card-body h3 {
-    color: #F9FAFB;
-    font-size: 1.6rem;
-    margin: 0 0 0.5rem 0;
+    margin: 10px 0;
+    font-size: 1.3rem;
 }
 
-.product-description {
-    font-size: 1rem;
-    color: #D1D5DB;
-    flex-grow: 1;
-    margin-bottom: 1rem;
+.product-card-desc {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    height: 3rem;
 }
 
 .product-price {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #FBBF24;
-    text-align: right;
-    margin-top: auto;
-}
-
-/* --- 공지사항 목록 --- */
-.notice-list {
-    list-style: none;
-    padding: 0;
-}
-.notice-item {
-    padding: 1rem;
-    border-bottom: 1px solid #4B5563;
-}
-.notice-item:last-child {
-    border-bottom: none;
-}
-.notice-item strong {
+    font-weight: 800;
     font-size: 1.2rem;
-    color: #F97316;
-}
-.notice-item p {
-    margin: 0.5rem 0 0 0;
-    color: #D1D5DB;
+    color: var(--text-primary);
 }
 
-/* --- 반응형 디자인 --- */
-@media (max-width: 768px) {
-    .hero-section h1 {
-        font-size: 2.5rem;
-    }
-    .hero-content p {
-        font-size: 1rem;
-    }
-    .hero-button {
-        padding: 0.8rem 1.5rem;
-        font-size: 1rem;
-    }
-    .info-section h2 {
-        font-size: 2rem;
-    }
-    .product-grid {
-        grid-template-columns: 1fr;
-    }
-    .info-section {
-        margin: 2rem auto;
-        padding: 1.5rem;
-    }
-}
-
-/* --- 확대된 카드 (모달) 스타일 --- */
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.85);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: 20px;
-    box-sizing: border-box;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.expanded-product-card {
-    background-color: #1F2937;
-    border: 1px solid #4B5563;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 800px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* 모달 자체에는 스크롤 없애고 내부 콘텐츠에만 스크롤 적용 */
-    animation: slideUp 0.4s ease-out;
-}
-
-@keyframes slideUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-/* ⭐⭐⭐ 수정된 부분: expanded-image-container의 height 삭제, JS에서 padding-top으로 제어 ⭐⭐⭐ */
-/* .expanded-image-container는 .product-image-container와 스타일을 공유합니다. */
-/* .expanded-product-image는 .product-image와 스타일을 공유합니다. */
-/* JS에서 paddingTop으로 높이 제어 */
-/* ⭐⭐⭐ 여기까지 수정 ⭐⭐⭐ */
-
-.expanded-product-info {
-    padding: 2rem;
-    overflow-y: auto; /* 모달의 이 부분에 스크롤을 적용 */
-    text-align: left;
-    flex-grow: 1; /* 남는 공간 채우기 */
-}
-
-.expanded-product-info h3 {
-    font-size: 2.2rem;
-    color: #F97316;
-    margin: 0 0 1rem 0;
-}
-
-.expanded-product-description {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    color: #E5E7EB;
-    margin-bottom: 1.5rem;
-}
-
-.expanded-product-price {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #FBBF24;
-    text-align: right;
-}
-
-.close-button {
-    background-color: #F97316;
-    color: white;
-    padding: 0.8rem 1.5rem;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: bold;
-    margin-top: 1.5rem;
-    float: right;
-    transition: background-color 0.3s ease;
-}
-
-.close-button:hover {
-    background-color: #EA580C;
-}
-
-@media (max-width: 768px) {
-    .expanded-product-card {
-        flex-direction: column;
-        max-height: 80vh;
-    }
-    /* 모바일에서 이미지 컨테이너의 높이도 JS로 제어되므로 고정 높이 삭제 */
-    /* .expanded-image-container { height: auto; } -> CSS에서 제거됨 */
-    .expanded-product-info {
-        padding: 1.5rem;
-    }
-    .expanded-product-info h3 {
-        font-size: 1.8rem;
-    }
-}
-/* ⭐ 제조 공정 가로 정렬 스타일 */
+/* --- 프로세스 단계 --- */
 .process-horizontal-container {
     display: flex;
-    justify-content: space-between;
-    gap: 15px;
-    margin-top: 2rem;
-    position: relative;
+    gap: 20px;
+    margin-top: 50px;
 }
 
 .process-step-box {
     flex: 1;
-    background-color: #1F2937; /* 기존 배경보다 약간 밝은 톤 */
-    border: 1px solid #4B5563;
-    border-radius: 8px;
-    padding: 1.5rem 1rem;
+    background: #111;
+    padding: 40px 30px;
+    border-radius: 12px;
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    border: 1px solid var(--bg-border);
 }
 
-.process-step-header {
-    text-align: center;
-    margin-bottom: 1.2rem;
-    width: 100%;
-    border-bottom: 2px solid #F97316; /* 이미지와 유사한 상단 강조선 */
-    padding-bottom: 0.8rem;
+.step-number {
+    color: var(--text-dim);
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
 }
 
 .step-icon {
-    font-size: 2rem;
+    font-size: 2.5rem;
+    margin-bottom: 20px;
     display: block;
-    margin-bottom: 0.5rem;
-}
-
-.process-step-header h3 {
-    font-size: 1.1rem;
-    color: #FFFFFF;
-    margin: 0;
 }
 
 .process-detail-list {
     list-style: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
+    margin-top: 20px;
+    text-align: left;
 }
 
 .process-detail-list li {
-    font-size: 0.9rem;
-    color: #D1D5DB;
-    margin-bottom: 0.5rem;
-    padding-left: 1.2rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    padding-left: 15px;
     position: relative;
 }
 
-/* 불렛 포인트 커스텀 (오렌지색 점) */
 .process-detail-list li::before {
-    content: "•";
-    color: #F97316;
+    content: "·";
     position: absolute;
     left: 0;
-    font-weight: bold;
+    color: var(--point-cyan);
 }
 
-/* 단계 사이 화살표 스타일 */
 .process-arrow {
     position: absolute;
-    right: -12px;
+    right: -25px;
     top: 50%;
-    transform: translateY(-50%);
-    color: #F97316;
-    font-size: 1rem;
-    z-index: 10;
+    color: var(--bg-border);
+    font-size: 1.5rem;
 }
 
-/* 반응형: 모바일에서는 세로로 전환 */
-@media (max-width: 1024px) {
-    .process-horizontal-container {
-        flex-direction: column;
-        gap: 2rem;
-    }
-    .process-arrow {
-        right: auto;
-        bottom: -25px;
-        left: 50%;
-        transform: translateX(-50%) rotate(90deg);
-    }
+/* --- 푸터 --- */
+.home-footer {
+    padding: 50px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--bg-border);
+}
+
+/* 반응형 처리 */
+@media (max-width: 992px) {
+    .process-horizontal-container { flex-direction: column; }
+    .process-arrow { display: none; }
+    .contact-info-grid { grid-template-columns: 1fr; gap: 20px; }
+    .brand-logo-text { font-size: 4rem; }
 }
