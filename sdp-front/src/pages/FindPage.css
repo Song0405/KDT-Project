@@ -1,101 +1,205 @@
+/* --- ROOT STATION FIND PAGE THEME --- */
+
+.find-page-wrapper {
+    background-color: #050505;
+    min-height: calc(100vh - 70px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+}
+
 .find-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 30px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background-color: #111111;
+    border: 1px solid #222222;
+    padding: 50px 40px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    text-align: center;
 }
 
 .find-title {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #111827;
+    font-size: 2rem;
+    font-weight: 900;
+    margin-bottom: 10px;
+    background: linear-gradient(180deg, #fff 0%, #888 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
+.find-subtitle {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 40px;
+}
+
+/* 탭 스타일 */
 .find-tabs {
     display: flex;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid #222;
+    margin-bottom: 35px;
 }
 
 .find-tab {
     flex: 1;
-    padding: 10px;
-    text-align: center;
+    padding: 15px;
     cursor: pointer;
-    color: #666;
+    color: #555;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.find-tab:hover {
+    color: #bbb;
 }
 
 .find-tab.active {
-    font-weight: bold;
-    border-bottom: 2px solid #F97316;
-    color: #F97316;
+    color: #00d4ff;
+    border-bottom: 2px solid #00d4ff;
 }
 
+/* 폼 요소 */
 .find-form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 20px;
+}
+
+.input-group {
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 .find-input {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    width: 100%;
+    padding: 14px 16px;
+    background-color: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
-/* 이메일 인증 박스 */
-.verify-box {
-    border: 1px solid #eee;
-    padding: 10px;
-    border-radius: 5px;
-    background-color: #fafafa;
+.find-input:focus {
+    border-color: #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+}
+
+.find-input:disabled {
+    background-color: #111;
+    color: #444;
+    border-color: #1a1a1a;
+}
+
+/* 인증 섹션 */
+.verify-section {
+    text-align: left;
+    background: #0d0d0d;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px dashed #222;
+}
+
+.verify-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #00d4ff;
+    margin-bottom: 12px;
+    font-weight: bold;
 }
 
 .verify-row {
     display: flex;
-    gap: 5px;
-    margin-bottom: 5px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
-.verify-btn {
-    padding: 5px 10px;
-    font-size: 12px;
+.verify-action-btn {
+    white-space: nowrap;
+    background: #222;
+    color: #fff;
     border: none;
-    border-radius: 3px;
+    padding: 0 15px;
+    border-radius: 6px;
+    font-size: 0.85rem;
     cursor: pointer;
-    color: white;
-    background-color: #4B5563;
+    transition: all 0.3s;
 }
 
-.verify-btn.success {
-    background-color: #10B981;
+.verify-action-btn:hover:not(:disabled) {
+    background: #333;
 }
 
-/* 액션 버튼 */
-.find-action-btn {
-    margin-top: 10px;
-    padding: 12px;
-    background-color: #F97316;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+.verify-action-btn.success {
+    background: #00d4ff;
+    color: #000;
     font-weight: bold;
 }
 
-.find-action-btn:disabled {
-    background-color: #ccc;
+/* 메인 액션 버튼 */
+.find-main-btn {
+    background-color: #00d4ff;
+    color: #000;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.find-main-btn:hover:not(:disabled) {
+    background-color: #00e5ff;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 212, 255, 0.3);
+}
+
+.find-main-btn:disabled {
+    background-color: #222;
+    color: #444;
     cursor: not-allowed;
 }
 
-.find-result {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f3f4f6;
-    border-radius: 5px;
-    text-align: center;
-    color: #1f2937;
-    font-weight: bold;
+/* 결과 메시지 박스 */
+.find-result-box {
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 8px;
+    color: #00d4ff;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.find-footer {
+    margin-top: 40px;
+}
+
+.back-link {
+    color: #555;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.back-link:hover {
+    color: #888;
 }
