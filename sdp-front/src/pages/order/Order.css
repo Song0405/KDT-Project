@@ -1,0 +1,218 @@
+/* frontend/src/pages/order/Order.css */
+
+/* --- 메인 컨테이너 (다크 모드 적용) --- */
+.order-page-container, .order-manage-container {
+    max-width: 1000px;
+    margin: 50px auto;
+    padding: 40px;
+    background-color: #2D3748; /* 어두운 회색 배경 (AdminPage와 동일) */
+    color: #F8F9FA; /* 밝은 텍스트 */
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5); /* 그림자 진하게 */
+    text-align: center;
+}
+
+.order-page-container h1,
+.order-manage-container h2 {
+    color: #F97316; /* SDP 주황색 포인트 */
+    border-bottom: 2px solid #4A5568;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+}
+
+.order-page-container p {
+    color: #CBD5E0; /* 연한 회색 설명글 */
+}
+
+/* --- 검색창 & 입력 폼 --- */
+.search-box {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 40px 0;
+}
+
+.search-box input,
+.order-form input {
+    padding: 15px;
+    width: 300px;
+    background-color: #1A202C; /* 아주 어두운 배경 */
+    border: 1px solid #4A5568;
+    border-radius: 5px;
+    color: white; /* 입력 글씨 흰색 */
+    font-size: 1rem;
+}
+
+.search-box input:focus,
+.order-form input:focus {
+    outline: none;
+    border-color: #F97316; /* 포커스 시 주황색 */
+}
+
+.search-box button,
+.order-form button {
+    padding: 15px 30px;
+    background-color: #F97316; /* 주황색 버튼 */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    transition: background 0.3s;
+}
+
+.search-box button:hover,
+.order-form button:hover {
+    background-color: #EA580C;
+}
+
+/* --- 결과 화면 (텍스트) --- */
+.tracker-result h3 {
+    color: #fff;
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.tracker-result .code {
+    color: #F97316;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+}
+
+.current-status {
+    margin-top: 30px;
+    font-size: 1.2rem;
+    color: #CBD5E0;
+}
+
+.current-status span {
+    color: #F97316;
+    font-weight: bold;
+    font-size: 1.4rem;
+    margin-left: 10px;
+}
+
+/* --- 스텝 바 (Wizard) 다크 모드 --- */
+.step-wizard {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin: 50px 0;
+}
+
+/* 회색 배경 선 (어둡게 변경) */
+.step-wizard::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: #4A5568; /* 어두운 회색 선 */
+    z-index: 0;
+}
+
+/* 진행된 파란 선 (주황색으로 변경) */
+.progress-line {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    height: 4px;
+    background-color: #F97316; /* 주황색 */
+    z-index: 1;
+    transition: width 0.4s;
+}
+
+.step-item {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+/* 동그라미 (어둡게) */
+.step-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #1A202C; /* 아주 어두운 배경 */
+    border: 3px solid #4A5568;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: #718096;
+    transition: all 0.3s;
+}
+
+/* 활성화된 동그라미 */
+.active .step-circle {
+    border-color: #F97316;
+    background-color: #F97316;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* 단계 텍스트 */
+.step-text {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #718096; /* 비활성 텍스트 */
+}
+
+.active .step-text {
+    color: #F97316; /* 활성 텍스트 주황색 */
+    font-weight: bold;
+}
+
+/* --- 관리자 테이블 (다크 모드) --- */
+.order-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    color: #E2E8F0;
+}
+
+.order-table th {
+    padding: 15px;
+    border-bottom: 2px solid #4A5568;
+    color: #F97316;
+    font-size: 1.1rem;
+}
+
+.order-table td {
+    padding: 15px;
+    border-bottom: 1px solid #4A5568;
+}
+
+.order-table select {
+    padding: 8px;
+    border-radius: 5px;
+    background-color: #1A202C;
+    color: white;
+    border: 1px solid #4A5568;
+}
+
+.del-btn {
+    background-color: #DC2626; /* 빨간색 */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.del-btn:hover {
+    background-color: #B91C1C;
+}
+
+.error-msg {
+    color: #FC8181;
+    font-weight: bold;
+    margin-top: 10px;
+}

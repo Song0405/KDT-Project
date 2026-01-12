@@ -22,4 +22,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# 구글 키 파일 숨기기
+google-key.json
 src/main/resources/google-key.json
+
