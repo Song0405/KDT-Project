@@ -9,6 +9,9 @@ public class ProductDto {
     private Long id;
     private String name;
     private String description;
-    private String imageFileName; // imageUrl -> imageFileName
+    private String imageFileName;
     private Integer price;
+
+    // ⭐ 카테고리 필드 추가 (KEYBOARD, PC, MONITOR, ACC 등)
+    private String category;
 }
