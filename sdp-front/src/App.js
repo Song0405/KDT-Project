@@ -6,7 +6,6 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import OrderSearchPage from './pages/order/OrderSearchPage';
 import OrderManagePage from './pages/order/OrderManagePage';
 import Chatbot from './components/Chatbot';
-import './index.css';
 
 // 페이지 가져오기
 import JoinPage from './pages/JoinPage';
@@ -17,6 +16,9 @@ import NoticePage from './pages/NoticePage';
 import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
 
+// 공통 레이아웃 스타일 (CSS 파일이 따로 없다면 아래 styles 객체를 참조합니다)
+import './index.css';
+
 function App() {
     // 1. 로그인 상태 관리
     const [isAuthenticated, setIsAuthenticated] = useState(
@@ -26,10 +28,7 @@ function App() {
     // 2. 사용자 이름 상태 관리
     const [memberName, setMemberName] = useState(localStorage.getItem('memberName') || '');
 
-    // 3. 회원 타입 상태 관리
-    const [memberType, setMemberType] = useState(localStorage.getItem('memberType') || '');
-
-    // 4. 전체 메뉴 토글 상태 관리
+    // 3. 전체 메뉴 토글 상태 관리
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const location = useLocation();
@@ -40,7 +39,6 @@ function App() {
         localStorage.setItem('isAuthenticated', isAuthenticated);
         if(isAuthenticated) {
             setMemberName(localStorage.getItem('memberName'));
-            setMemberType(localStorage.getItem('memberType'));
         }
     }, [isAuthenticated]);
 
@@ -49,8 +47,7 @@ function App() {
         setIsAuthenticated(false);
         localStorage.clear();
         setMemberName('');
-        setMemberType('');
-        alert("로그아웃 되었습니다.");
+        alert("정상적으로 로그아웃 되었습니다.");
         navigate('/');
     };
 
@@ -60,19 +57,17 @@ function App() {
     };
 
     return (
-        <>
-            {/* --- 헤더 (포털 사이트 스타일) --- */}
+        <div style={styles.appWrapper}>
+            {/* --- 헤더 (다크 테마 & 유리 효과) --- */}
             <header style={styles.header}>
                 <div style={styles.container}>
-                    {/* 왼쪽 로고 */}
+                    {/* 왼쪽 로고 - ROOT STATION 스타일 */}
                     <NavLink to="/" style={styles.logo}>
-                        SDP Solutions
+                        ROOT STATION
                     </NavLink>
 
                     {/* 오른쪽 네비게이션 */}
                     <div style={styles.topNav}>
-
-                        {/* 1. HOME 버튼 */}
                         <NavLink
                             to="/"
                             style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
@@ -82,77 +77,57 @@ function App() {
 
                         <span style={styles.divider}>|</span>
 
-                        {/* 2. 로그인 여부에 따른 표시 */}
                         {isAuthenticated ? (
-                            <>
+                            <div style={styles.userSection}>
                                 <span style={styles.userInfo}>
-                                    👤 <strong>{memberName}</strong>님
-                                    <span style={{
-                                        color: memberType === 'admin' ? '#EF4444' : '#F97316',
-                                        marginLeft: '8px',
-                                        fontSize: '0.9em',
-                                        fontWeight: 'bold'
-                                    }}>
-                                        {memberType === 'admin' ? '[관리자]' : (memberType === 'company' ? '[기업]' : '[개인]')}
-                                    </span>
+                                    <span style={{color: '#00d4ff'}}>●</span> {memberName}님
                                 </span>
-                                <button onClick={handleLogout} style={styles.textButton}>
-                                    LOGOUT
-                                </button>
-                            </>
+                                <button onClick={handleLogout} style={styles.textButton}>Logout</button>
+                            </div>
                         ) : (
                             <>
-                                <Link to="/members/login" style={styles.textLink}>LOGIN</Link>
-                                <Link to="/members/join" style={styles.textLink}>SIGN-UP</Link>
+                                <Link to="/members/login" style={styles.textLink}>로그인</Link>
+                                <Link to="/members/join" style={styles.textLink}>회원가입</Link>
                             </>
                         )}
 
                         <span style={styles.divider}>|</span>
 
-                        {/* 3. 전체 메뉴 버튼 */}
+                        {/* 전체 메뉴 버튼 */}
                         <button onClick={toggleMenu} style={styles.menuButton}>
-                            ☰ 전체메뉴
+                            <span style={{marginRight: '5px'}}>☰</span> MENU
                         </button>
                     </div>
                 </div>
             </header>
 
-            {/* --- 전체 메뉴 오버레이 --- */}
+            {/* --- 전체 메뉴 오버레이 (다크 모드 커스텀) --- */}
             {isMenuOpen && (
-                <div style={styles.fullMenuOverlay}>
-                    <div style={styles.fullMenuContainer}>
+                <div style={styles.fullMenuOverlay} onClick={toggleMenu}>
+                    <div style={styles.fullMenuContainer} onClick={(e) => e.stopPropagation()}>
                         <div style={styles.fullMenuHeader}>
-                            <h2>전체 서비스</h2>
-                            <button onClick={toggleMenu} style={styles.closeButton}>✖ 닫기</button>
+                            <h2 style={styles.menuTitle}>ALL SERVICES</h2>
+                            <button onClick={toggleMenu} style={styles.closeButton}>✕ CLOSE</button>
                         </div>
 
-                        {/* 메뉴 그리드 */}
                         <div style={styles.menuGrid}>
                             <div style={styles.menuColumn}>
-                                <h3>회원 서비스</h3>
-                                <Link to="/members/mypage" onClick={toggleMenu}>마이 페이지</Link>
-
-                                {/* ⭐ [수정] 아이디 찾기/회원가입 삭제 -> 마이페이지만 남음 */}
+                                <h3 style={styles.columnTitle}>MEMBERSHIP</h3>
+                                <Link style={styles.menuItem} to="/members/mypage" onClick={toggleMenu}>마이 페이지</Link>
+                                <Link style={styles.menuItem} to="/members/find" onClick={toggleMenu}>계정 찾기</Link>
+                                {!isAuthenticated && <Link style={styles.menuItem} to="/members/join" onClick={toggleMenu}>회원가입</Link>}
                             </div>
-
                             <div style={styles.menuColumn}>
-                                <h3>주문/배송</h3>
-                                <Link to="/track" onClick={toggleMenu}>배송 조회</Link>
+                                <h3 style={styles.columnTitle}>SHOPPING</h3>
+                                <Link style={styles.menuItem} to="/products" onClick={toggleMenu}>제품 목록 (AI 큐레이션)</Link>
+                                <Link style={styles.menuItem} to="/track" onClick={toggleMenu}>주문/배송 조회</Link>
+                                <span style={styles.disabledItem}>장바구니 (준비중)</span>
                             </div>
-
                             <div style={styles.menuColumn}>
-                                <h3>고객 지원</h3>
-                                <Link to="/notices" onClick={toggleMenu}>공지사항</Link>
-                                <Link to="#" style={{color:'#aaa', cursor:'default'}}>자주 묻는 질문</Link>
-                            </div>
-
-                            <div style={styles.menuColumn}>
-                                <h3>제품/주문</h3>
-                                <Link to="/products" onClick={toggleMenu} style={{color: '#F97316', fontWeight: 'bold'}}>
-                                    📦 제품 목록 (AI 추천)
-                                </Link>
-                                <Link to="#" style={{color:'#aaa', cursor:'default'}}>장바구니 (준비중)</Link>
-                                <Link to="#" style={{color:'#aaa', cursor:'default'}}>견적 요청 (준비중)</Link>
+                                <h3 style={styles.columnTitle}>SUPPORT</h3>
+                                <Link style={styles.menuItem} to="/notices" onClick={toggleMenu}>공지사항</Link>
+                                <Link style={styles.menuItem} to="#" onClick={toggleMenu}>자주 묻는 질문</Link>
+                                <Link style={styles.menuItem} to="/admin" onClick={toggleMenu} style={{color: '#bb86fc'}}>관리자 모드</Link>
                             </div>
                         </div>
                     </div>
@@ -160,16 +135,14 @@ function App() {
             )}
 
             {/* --- 메인 콘텐츠 --- */}
-            <main style={{ minHeight: '80vh' }}>
+            <main style={styles.mainContent}>
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/members/join" element={<JoinPage />} />
                     <Route path="/members/login" element={<LoginPage setIsAuthenticated={setIsAuthenticated} />} />
                     <Route path="/members/find" element={<FindPage />} />
                     <Route path="/members/mypage" element={<MyPage />} />
-
                     <Route path="/notices" element={<NoticePage />} />
-
                     <Route
                         path="/admin"
                         element={isAuthenticated ? <AdminPage /> : <AdminLoginPage setAuthenticated={setIsAuthenticated} />}
@@ -183,118 +156,129 @@ function App() {
 
             <Chatbot />
 
-            {/* --- 푸터 --- */}
+            {/* --- 푸터 (다크 레이아웃) --- */}
             <footer style={styles.footer}>
-                <p>&copy; {new Date().getFullYear()} SDP Solutions. All rights reserved.</p>
+                <div style={styles.footerContent}>
+                    <p style={{marginBottom: '10px'}}>&copy; {new Date().getFullYear()} <span style={{color: 'white', fontWeight: 'bold'}}>ROOT STATION</span>. All rights reserved.</p>
+                    <div style={styles.footerSubLinks}>
+                        <span>이용약관</span> | <span>개인정보처리방침</span> | <span>사업자정보확인</span>
+                    </div>
+                </div>
             </footer>
-        </>
+        </div>
     );
 }
 
-// --- 스타일 정의 ---
+// --- 스타일 정의 (ROOT STATION 다크 테마) ---
 const styles = {
+    appWrapper: {
+        backgroundColor: '#050505',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+    },
     header: {
-        backgroundColor: '#111827',
-        height: '60px',
+        backgroundColor: 'rgba(10, 10, 10, 0.8)',
+        height: '70px',
         display: 'flex',
         alignItems: 'center',
-        borderBottom: '3px solid #F97316',
-        position: 'relative',
+        borderBottom: '1px solid #222',
+        position: 'sticky',
+        top: 0,
         zIndex: 1000,
+        backdropFilter: 'blur(10px)',
     },
     container: {
-        width: '100%',
-        maxWidth: '1200px',
+        width: '90%',
+        maxWidth: '1400px',
         margin: '0 auto',
-        padding: '0 20px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     logo: {
-        fontSize: '1.5em',
-        fontWeight: 'bold',
-        color: '#F3F4F6',
+        fontSize: '1.4rem',
+        fontWeight: '900',
+        color: 'white',
         textDecoration: 'none',
-        letterSpacing: '1px',
+        letterSpacing: '-1px',
+        background: 'linear-gradient(180deg, #fff 0%, #888 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
     },
     topNav: {
         display: 'flex',
         alignItems: 'center',
-        fontSize: '0.9em',
-        color: 'white',
-        gap: '15px',
+        gap: '20px',
+    },
+    userSection: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
     },
     userInfo: {
-        marginRight: '5px',
-        color: '#F3F4F6',
+        color: '#eee',
+        fontSize: '0.9rem',
     },
     link: {
-        color: '#D1D5DB',
+        color: '#999',
         textDecoration: 'none',
-        fontSize: '1em',
-        fontWeight: '500',
-        padding: '6px 12px',
-        borderRadius: '5px',
-        transition: 'all 0.3s',
+        fontSize: '0.9rem',
+        fontWeight: '600',
+        transition: '0.3s',
     },
     activeLink: {
-        color: '#FFFFFF',
+        color: '#00d4ff',
         textDecoration: 'none',
-        fontSize: '1em',
+        fontSize: '0.9rem',
         fontWeight: 'bold',
-        padding: '6px 12px',
-        borderRadius: '5px',
-        backgroundColor: '#F97316',
     },
     textLink: {
-        color: '#D1D5DB',
+        color: '#999',
         textDecoration: 'none',
-        margin: '0 5px',
+        fontSize: '0.9rem',
         cursor: 'pointer',
-        fontSize: '0.95em',
     },
     textButton: {
         background: 'none',
-        border: 'none',
-        color: '#D1D5DB',
+        border: '1px solid #333',
+        borderRadius: '4px',
+        color: '#888',
         cursor: 'pointer',
-        fontSize: '0.95em',
-        marginLeft: '5px',
+        fontSize: '0.8rem',
+        padding: '4px 8px',
     },
     menuButton: {
-        background: 'none',
-        border: '1px solid #6B7280',
-        borderRadius: '4px',
+        background: '#111',
+        border: '1px solid #333',
+        borderRadius: '6px',
         color: 'white',
-        padding: '4px 10px',
+        padding: '8px 15px',
         cursor: 'pointer',
         fontWeight: 'bold',
-        fontSize: '0.9em',
+        fontSize: '0.85rem',
+        transition: '0.3s',
     },
     divider: {
-        color: '#4B5563',
-        fontSize: '0.8em',
-        margin: '0 5px',
+        color: '#222',
     },
     fullMenuOverlay: {
         position: 'fixed',
-        top: '63px',
+        top: 0,
         left: 0,
         width: '100%',
-        height: 'calc(100vh - 63px)',
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        zIndex: 999,
+        height: '100vh',
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        zIndex: 1100,
         display: 'flex',
-        justifyContent: 'center',
+        flexDirection: 'column',
     },
     fullMenuContainer: {
         width: '100%',
-        backgroundColor: 'white',
-        padding: '30px',
-        height: '350px',
-        boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-        color: '#333',
+        backgroundColor: '#0a0a0a',
+        padding: '50px 0',
+        borderBottom: '1px solid #222',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
     },
     fullMenuHeader: {
         maxWidth: '1200px',
@@ -302,36 +286,74 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: '2px solid #111827',
-        paddingBottom: '15px',
-        marginBottom: '20px',
+        marginBottom: '40px',
+        padding: '0 20px',
+    },
+    menuTitle: {
+        color: '#00d4ff',
+        fontSize: '1.2rem',
+        letterSpacing: '2px',
     },
     closeButton: {
         background: 'none',
-        border: 'none',
-        fontSize: '1.2em',
+        border: '1px solid #333',
+        color: '#888',
+        padding: '8px 15px',
         cursor: 'pointer',
-        fontWeight: 'bold',
+        fontSize: '0.8rem',
     },
     menuGrid: {
         maxWidth: '1200px',
         margin: '0 auto',
-        display: 'flex',
-        gap: '80px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        padding: '0 20px',
     },
     menuColumn: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: '15px',
+    },
+    columnTitle: {
+        color: 'white',
+        fontSize: '1rem',
+        marginBottom: '10px',
+        borderLeft: '3px solid #00d4ff',
+        paddingLeft: '10px',
+    },
+    menuItem: {
+        color: '#999',
+        textDecoration: 'none',
+        fontSize: '0.95rem',
+        transition: '0.3s',
+    },
+    disabledItem: {
+        color: '#333',
+        fontSize: '0.95rem',
+        cursor: 'default',
+    },
+    mainContent: {
+        flex: 1,
+        paddingTop: '20px',
     },
     footer: {
-        textAlign: 'center',
-        padding: '30px',
-        backgroundColor: '#111827',
-        color: '#9CA3AF',
-        marginTop: '50px',
-        borderTop: '1px solid #374151',
+        backgroundColor: '#050505',
+        padding: '60px 20px',
+        borderTop: '1px solid #111',
+        marginTop: '100px',
     },
+    footerContent: {
+        textAlign: 'center',
+        color: '#555',
+        fontSize: '0.9rem',
+    },
+    footerSubLinks: {
+        marginTop: '15px',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '20px',
+        fontSize: '0.8rem',
+    }
 };
 
 export default App;

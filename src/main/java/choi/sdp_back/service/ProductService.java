@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    //  AI 추천 저장소와 AI 서비스 주입
     private final ProductRecommendationRepository productRecommendationRepository;
     private final AiService aiService;
 
@@ -36,7 +35,7 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    //  제품 생성 메서드
+    // 1. 제품 생성 메서드 (Category 추가됨)
     @Transactional
     public ProductDto createProduct(ProductDto productDto, MultipartFile imageFile) throws IOException {
         String savedFileName = "";
@@ -49,40 +48,31 @@ public class ProductService {
         product.setDescription(productDto.getDescription());
         product.setPrice(productDto.getPrice());
         product.setImageFileName(savedFileName);
+        // ⭐ 추가: DTO에서 받은 카테고리를 엔티티에 저장
+        product.setCategory(productDto.getCategory());
 
-        // 1. 내 상품 저장
         Product savedProduct = productRepository.save(product);
 
-        // 2. AI 추천 로직 실행
+        // AI 추천 로직 (기존과 동일)
         try {
-            // DB에서 다른 상품들 이름만 다 가져오기
             List<String> allProductNames = productRepository.findAll().stream()
                     .map(Product::getName)
-                    .filter(name -> !name.equals(savedProduct.getName())) // 내 이름은 뺌
+                    .filter(name -> !name.equals(savedProduct.getName()))
                     .collect(Collectors.toList());
 
             if (!allProductNames.isEmpty()) {
-                // AI에게 "이 목록에서 골라줘" 요청
                 String aiResult = aiService.getRecommendation(
                         savedProduct.getName(),
                         savedProduct.getDescription(),
                         allProductNames
                 );
-
-                // 로그 찍어서 확인 (중요!)
-                System.out.println("🤖 AI 응답: " + aiResult);
-
-                // 결과 파싱 ("제품명 : 이유" 형태)
                 String[] parts = aiResult.split(":");
                 String targetName = parts.length > 0 ? parts[0].trim() : "추천 아이템";
                 String reason = parts.length > 1 ? parts[1].trim() : "이유 없음";
 
                 ProductRecommendation recommendation = new ProductRecommendation(savedProduct, targetName, reason);
                 productRecommendationRepository.save(recommendation);
-            } else {
-                System.out.println("⚠️ DB에 추천할 다른 상품이 하나도 없습니다.");
             }
-
         } catch (Exception e) {
             System.out.println("⚠️ AI 추천 실패: " + e.getMessage());
         }
@@ -90,51 +80,44 @@ public class ProductService {
         return convertToDto(savedProduct);
     }
 
+    // 2. 제품 수정 메서드 (Category 추가됨)
     @Transactional
     public ProductDto updateProduct(Long id, ProductDto productDto, MultipartFile imageFile) throws IOException {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("ID를 찾을 수 없음: " + id));
 
-        // 1. 정보 수정 (이름, 설명, 가격 등)
         product.setName(productDto.getName());
         product.setDescription(productDto.getDescription());
         product.setPrice(productDto.getPrice());
+        // ⭐ 추가: 수정한 카테고리 정보 반영
+        product.setCategory(productDto.getCategory());
 
         if (imageFile != null && !imageFile.isEmpty()) {
             product.setImageFileName(saveImage(imageFile));
         }
 
-        // 2. 저장 (먼저 저장해야 바뀐 정보가 확정됨)
         Product savedProduct = productRepository.save(product);
 
-        // 수정된 정보로 AI 추천 다시 받기
+        // AI 추천 갱신 로직 (기존과 동일)
         try {
-            // (1) 기존 추천 삭제
             productRecommendationRepository.deleteByProductId(savedProduct.getId());
-
-            // (2) 다른 상품 목록 가져오기 (비교군)
             List<String> allProductNames = productRepository.findAll().stream()
                     .map(Product::getName)
                     .filter(name -> !name.equals(savedProduct.getName()))
                     .collect(Collectors.toList());
 
             if (!allProductNames.isEmpty()) {
-                // (3) AI 재호출
                 String aiResult = aiService.getRecommendation(
                         savedProduct.getName(),
                         savedProduct.getDescription(),
                         allProductNames
                 );
-
-                // (4) 결과 파싱 및 저장
                 String[] parts = aiResult.split(":");
                 String targetName = parts.length > 0 ? parts[0].trim() : "추천 아이템";
                 String reason = parts.length > 1 ? parts[1].trim() : aiResult;
 
                 ProductRecommendation recommendation = new ProductRecommendation(savedProduct, targetName, reason);
                 productRecommendationRepository.save(recommendation);
-
-                System.out.println("✅ (수정됨) AI 추천 갱신 완료: " + targetName);
             }
         } catch (Exception e) {
             System.out.println("⚠️ AI 추천 갱신 실패: " + e.getMessage());
@@ -146,12 +129,10 @@ public class ProductService {
     private String saveImage(MultipartFile imageFile) throws IOException {
         File uploadDir = new File(uploadPath);
         if (!uploadDir.exists()) uploadDir.mkdirs();
-
         String uuid = UUID.randomUUID().toString();
         String originalName = imageFile.getOriginalFilename();
         String extension = originalName.substring(originalName.lastIndexOf("."));
         String savedName = uuid + extension;
-
         imageFile.transferTo(new File(uploadPath, savedName));
         return savedName;
     }
@@ -161,6 +142,7 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
+    // 3. DTO 변환 메서드 (Category 추가됨)
     private ProductDto convertToDto(Product product) {
         ProductDto dto = new ProductDto();
         dto.setId(product.getId());
@@ -168,10 +150,12 @@ public class ProductService {
         dto.setDescription(product.getDescription());
         dto.setImageFileName(product.getImageFileName());
         dto.setPrice(product.getPrice());
+        // ⭐ 추가: DB에서 가져온 카테고리를 DTO에 담아서 프론트로 전달
+        dto.setCategory(product.getCategory());
         return dto;
     }
 
-    // 상세 조회 (AI 추천 포함)
+    // 4. 상세 조회 (ProductResponseDto에도 category가 있다면 추가 권장)
     @Transactional(readOnly = true)
     public ProductResponseDto getProductDetail(Long id) {
         Product product = productRepository.findById(id)
@@ -181,15 +165,14 @@ public class ProductService {
 
         List<ProductResponseDto.AiRecommendation> recDtos = recommendations.stream()
                 .map(rec -> {
-                    //  이름으로 실제 제품 ID 찾기
                     Long targetId = productRepository.findByName(rec.getTargetProductName())
                             .map(Product::getId)
-                            .orElse(null); // 만약 제품이 삭제됐다면 null
+                            .orElse(null);
 
                     return ProductResponseDto.AiRecommendation.builder()
                             .targetProductName(rec.getTargetProductName())
                             .reason(rec.getReason())
-                            .targetProductId(targetId) //  ID 넣어주기
+                            .targetProductId(targetId)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -200,6 +183,7 @@ public class ProductService {
                 .price(product.getPrice())
                 .description(product.getDescription())
                 .imageUrl(product.getImageFileName())
+                // .category(product.getCategory()) // ⭐ ProductResponseDto에 필드가 있다면 주석 해제
                 .recommendations(recDtos)
                 .build();
     }

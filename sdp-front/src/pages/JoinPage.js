@@ -4,78 +4,131 @@ import './JoinPage.css';
 
 function JoinPage() {
     const [formData, setFormData] = useState({
-        memberId: '', password: '', name: '', phoneNumber: '', email: '', ssn: '', businessNumber: '', type: 'individual'
+        memberId: '',
+        password: '',
+        name: '',
+        phoneNumber: '',
+        email: '',
+        ssn: '',
+        businessNumber: '',
+        type: 'individual'
     });
-    const [isUploading, setIsUploading] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null);
+
     const navigate = useNavigate();
 
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-    const handleFileChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) { setSelectedFile(null); return; }
-        setSelectedFile(file);
-        setIsUploading(true);
-        const ocrFormData = new FormData();
-        ocrFormData.append('file', file);
-        try {
-            const response = await fetch('http://localhost:8080/api/ocr/extract-business-info', { method: 'POST', body: ocrFormData });
-            if (response.ok) {
-                const data = await response.json();
-                setFormData(prev => ({ ...prev, businessNumber: data.businessNumber || prev.businessNumber, name: data.representativeName || prev.name }));
-                alert("사업자 정보 자동 입력 완료!");
-            } else alert("OCR 분석 실패");
-        } catch (error) { alert("서버 오류"); } finally { setIsUploading(false); }
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // ... (유효성 검사 로직 동일)
+
+        // 기업 회원일 경우 사업자 번호 필수 체크 예시
+        if (formData.type === 'company' && !formData.businessNumber) {
+            alert("사업자 등록 번호를 입력해주세요.");
+            return;
+        }
+
         try {
             const response = await fetch('http://localhost:8080/api/members/join', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData)
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
             });
-            if (response.ok) { alert("회원가입 성공!"); navigate('/members/login'); }
-            else alert("실패: " + await response.text());
-        } catch (error) { alert("서버 연결 실패"); }
+
+            if (response.ok) {
+                alert("🎉 회원가입이 완료되었습니다! 로그인 후 ROOT STATION을 이용해보세요.");
+                navigate('/members/login');
+            } else {
+                const errorMsg = await response.text();
+                alert("가입 실패: " + errorMsg);
+            }
+        } catch (error) {
+            alert("서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
+        }
     };
 
     return (
-        <div className="join-container">
-            <h2 className="join-title">회원가입</h2>
-            <form onSubmit={handleSubmit}>
-                <div className="type-selector">
-                    <label className="type-label"><input type="radio" name="type" value="individual" checked={formData.type === 'individual'} onChange={handleChange} /> 개인회원</label>
-                    <label className="type-label"><input type="radio" name="type" value="company" checked={formData.type === 'company'} onChange={handleChange} /> 기업회원</label>
-                </div>
+        <div className="join-page-wrapper">
+            <div className="join-container">
+                <header className="join-header">
+                    <h2 className="join-title">회원가입</h2>
+                    <p className="join-subtitle">최상의 워크스테이션 환경을 위한 첫 걸음</p>
+                </header>
 
-                <div className="join-form">
-                    <input type="text" name="memberId" placeholder="아이디" onChange={handleChange} required className="join-input" />
-                    <input type="password" name="password" placeholder="비밀번호" onChange={handleChange} required className="join-input" />
-                    <input type="text" name="name" placeholder="이름 (또는 대표자명)" onChange={handleChange} required className="join-input" />
-                    <input type="text" name="phoneNumber" placeholder="전화번호" onChange={handleChange} className="join-input" />
-                    <input type="email" name="email" placeholder="이메일" onChange={handleChange} className="join-input" />
+                <form onSubmit={handleSubmit} className="join-form-area">
+                    {/* 회원 유형 선택 (탭 스타일) */}
+                    <div className="type-tab-selector">
+                        <div
+                            className={`type-tab ${formData.type === 'individual' ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, type: 'individual' })}
+                        >
+                            개인 회원
+                        </div>
+                        <div
+                            className={`type-tab ${formData.type === 'company' ? 'active' : ''}`}
+                            onClick={() => setFormData({ ...formData, type: 'company' })}
+                        >
+                            기업 회원
+                        </div>
+                    </div>
 
-                    {formData.type === 'individual' ? (
-                        <input type="text" name="ssn" placeholder="주민번호" onChange={handleChange} className="join-input" />
-                    ) : (
-                        <>
-                            <div className="upload-box">
-                                <label htmlFor="business-license-upload">
-                                    사업자등록증 업로드 (필수)
-                                    <input id="business-license-upload" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-                                    <div className="upload-btn-area">
-                                        {isUploading ? '분석 중...' : '파일 선택'}
-                                    </div>
-                                </label>
+                    <div className="input-section">
+                        <div className="input-group">
+                            <label>아이디</label>
+                            <input type="text" name="memberId" placeholder="아이디 입력" onChange={handleChange} required className="join-input" />
+                        </div>
+
+                        <div className="input-group">
+                            <label>비밀번호</label>
+                            <input type="password" name="password" placeholder="영문, 숫자 포함 8자 이상" onChange={handleChange} required className="join-input" />
+                        </div>
+
+                        <div className="input-group">
+                            <label>{formData.type === 'individual' ? '성함' : '대표자 성함'}</label>
+                            <input type="text" name="name" value={formData.name} placeholder="실명 입력" onChange={handleChange} required className="join-input" />
+                        </div>
+
+                        <div className="input-row">
+                            <div className="input-group">
+                                <label>연락처</label>
+                                <input type="text" name="phoneNumber" placeholder="'-' 제외 숫자만" onChange={handleChange} className="join-input" />
                             </div>
-                            <input type="text" name="businessNumber" placeholder="사업자번호" value={formData.businessNumber} onChange={handleChange} required className="join-input" />
-                        </>
-                    )}
-                </div>
-                <button type="submit" className="join-submit-btn">가입하기</button>
-            </form>
+                            <div className="input-group">
+                                <label>이메일</label>
+                                <input type="email" name="email" placeholder="example@root.com" onChange={handleChange} className="join-input" />
+                            </div>
+                        </div>
+
+                        {/* 유형에 따른 추가 정보 입력 */}
+                        {formData.type === 'individual' ? (
+                            <div className="input-group">
+                                <label>주민등록번호</label>
+                                <input type="text" name="ssn" placeholder="앞자리-뒷자리" onChange={handleChange} className="join-input" />
+                            </div>
+                        ) : (
+                            <div className="input-group company-info-fade">
+                                <label>사업자 등록 번호</label>
+                                <input
+                                    type="text"
+                                    name="businessNumber"
+                                    placeholder="사업자 번호 10자리 입력"
+                                    value={formData.businessNumber}
+                                    onChange={handleChange}
+                                    required
+                                    className="join-input highlight"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <button type="submit" className="join-submit-btn">가입 신청하기</button>
+                </form>
+
+                <footer className="join-footer">
+                    이미 계정이 있으신가요? <span onClick={() => navigate('/members/login')}>로그인하러 가기</span>
+                </footer>
+            </div>
         </div>
     );
 }
