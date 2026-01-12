@@ -4,7 +4,7 @@ from flask_cors import CORS
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import requests
-import face_recognition # ⭐ 딥러닝 라이브러리
+#import face_recognition # ⭐ 딥러닝 라이브러리
 import numpy as np
 import base64
 import cv2

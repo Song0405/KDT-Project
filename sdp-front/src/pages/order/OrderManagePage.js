@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import './Order.css';
 
 function OrderManagePage() {
     const [orders, setOrders] = useState([]);
     const [newOrder, setNewOrder] = useState({ clientName: '', productName: '', contact: '' });
+    const [filterTerm, setFilterTerm] = useState(''); // 검색 상태 추가
 
     useEffect(() => { fetchOrders(); }, []);
 
@@ -12,74 +13,124 @@ function OrderManagePage() {
         try {
             const res = await axios.get('http://localhost:8080/api/orders');
             setOrders(res.data);
-        } catch (error) { console.error(error); }
+        } catch (error) { console.error("데이터 동기화 실패:", error); }
     };
+
+    // 실시간 검색 필터링 로직
+    const filteredOrders = useMemo(() => {
+        return orders.filter(order =>
+            order.clientName.toLowerCase().includes(filterTerm.toLowerCase()) ||
+            order.productName.toLowerCase().includes(filterTerm.toLowerCase()) ||
+            order.trackingCode.toLowerCase().includes(filterTerm.toLowerCase())
+        );
+    }, [filterTerm, orders]);
 
     const addOrder = async (e) => {
         e.preventDefault();
         try {
             await axios.post('http://localhost:8080/api/orders', newOrder);
-            alert('주문 등록 완료!');
+            alert('✅ 새로운 시스템 로그가 생성되었습니다.');
             setNewOrder({ clientName: '', productName: '', contact: '' });
             fetchOrders();
-        } catch (error) { alert('등록 실패'); }
+        } catch (error) { alert('로그 생성 실패'); }
     };
 
     const updateStatus = async (id, status) => {
-        await axios.put(`http://localhost:8080/api/orders/${id}/status?status=${status}`);
-        fetchOrders();
+        try {
+            await axios.put(`http://localhost:8080/api/orders/${id}/status?status=${status}`);
+            fetchOrders();
+        } catch (error) { console.error("프로세스 업데이트 실패:", error); }
     };
 
     const deleteOrder = async (id) => {
-        if(window.confirm("삭제하시겠습니까?")) {
+        if(window.confirm("해당 데이터를 폐기하시겠습니까?")) {
             await axios.delete(`http://localhost:8080/api/orders/${id}`);
             fetchOrders();
         }
     };
 
     return (
-        <div className="order-manage-container">
-            <h2>🏭 주문 공정 관리</h2>
+        <div className="order-manage-wrapper">
+            <header className="order-header">
+                <h2 className="order-page-title">LOGISTICS <span className="highlight">CONTROL</span></h2>
+                <p className="order-subtitle">실시간 워크스테이션 배송 로그 및 공정 제어 시스템</p>
+            </header>
 
-            {/* 등록 폼 */}
-            <form onSubmit={addOrder} className="order-form">
-                <input placeholder="고객사명" value={newOrder.clientName} onChange={(e)=>setNewOrder({...newOrder, clientName: e.target.value})} required />
-                <input placeholder="품목명" value={newOrder.productName} onChange={(e)=>setNewOrder({...newOrder, productName: e.target.value})} required />
-                <input placeholder="연락처" value={newOrder.contact} onChange={(e)=>setNewOrder({...newOrder, contact: e.target.value})} required />
-                <button type="submit">주문 생성</button>
-            </form>
+            {/* 상단: 주문 생성 및 필터링 영역 */}
+            <div className="order-top-controls">
+                <section className="order-input-section">
+                    <form onSubmit={addOrder} className="order-form-grid">
+                        <div className="input-field">
+                            <label>CUSTOMER</label>
+                            <input placeholder="고객명" value={newOrder.clientName} onChange={(e)=>setNewOrder({...newOrder, clientName: e.target.value})} required />
+                        </div>
+                        <div className="input-field">
+                            <label>GEAR TYPE</label>
+                            <input placeholder="품목명" value={newOrder.productName} onChange={(e)=>setNewOrder({...newOrder, productName: e.target.value})} required />
+                        </div>
+                        <div className="input-field">
+                            <label>CONTACT</label>
+                            <input placeholder="연락처" value={newOrder.contact} onChange={(e)=>setNewOrder({...newOrder, contact: e.target.value})} required />
+                        </div>
+                        <button type="submit" className="btn-order-create">INITIATE</button>
+                    </form>
+                </section>
 
-            {/* 목록 테이블 */}
-            <table className="order-table">
-                <thead>
-                <tr>
-                    <th>송장번호</th>
-                    <th>고객사</th>
-                    <th>품목</th>
-                    <th>상태 변경</th>
-                    <th>관리</th>
-                </tr>
-                </thead>
-                <tbody>
-                {orders.map(order => (
-                    <tr key={order.id}>
-                        <td>{order.trackingCode}</td>
-                        <td>{order.clientName}</td>
-                        <td>{order.productName}</td>
-                        <td>
-                            <select value={order.status} onChange={(e) => updateStatus(order.id, e.target.value)}>
-                                <option value="ORDERED">주문 접수</option>
-                                <option value="MANUFACTURING">제작/가공 중</option>
-                                <option value="QUALITY_CHECK">품질 검사</option>
-                                <option value="SHIPPING">배송 중</option>
-                                <option value="COMPLETED">납품 완료</option>
-                            </select>
-                        </td>
-                        <td><button onClick={() => deleteOrder(order.id)} className="del-btn">삭제</button></td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+                <div className="order-search-filter">
+                    <input
+                        type="text"
+                        placeholder="송장번호, 고객명, 품목으로 검색..."
+                        value={filterTerm}
+                        onChange={(e) => setFilterTerm(e.target.value)}
+                        className="search-input"
+                    />
+                </div>
+            </div>
+
+            {/* 하단: 데이터 그리드 리스트 */}
+            <section className="order-list-section">
+                <div className="table-container">
+                    <table className="root-order-table">
+                        <thead>
+                        <tr>
+                            <th>INVOICE</th>
+                            <th>CUSTOMER</th>
+                            <th>GEAR</th>
+                            <th>PROGRESS STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {filteredOrders.map(order => (
+                            <tr key={order.id} className={`status-row ${order.status}`}>
+                                <td className="tracking-code"># {order.trackingCode}</td>
+                                <td className="client-name">{order.clientName}</td>
+                                <td>{order.productName}</td>
+                                <td>
+                                    <div className="status-select-box">
+                                        <select
+                                            value={order.status}
+                                            onChange={(e) => updateStatus(order.id, e.target.value)}
+                                            className={`status-select ${order.status}`}
+                                        >
+                                            <option value="ORDERED">접수됨</option>
+                                            <option value="MANUFACTURING">조립/커스텀</option>
+                                            <option value="QUALITY_CHECK">최종 검수</option>
+                                            <option value="SHIPPING">출고/배송</option>
+                                            <option value="COMPLETED">배송 완료</option>
+                                        </select>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button onClick={() => deleteOrder(order.id)} className="btn-drop">폐기</button>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                    {filteredOrders.length === 0 && <div className="empty-msg">일치하는 로그 데이터가 없습니다.</div>}
+                </div>
+            </section>
         </div>
     );
 }
