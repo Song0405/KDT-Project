@@ -21,15 +21,25 @@ OLLAMA_MODEL = "gemma3:4b"
 SIMILARITY_THRESHOLD = 0.4
 
 try:
+<<<<<<< HEAD
     df = pd.read_csv('company_docs.csv')
+=======
+    df = pd.read_csv(r"C:\KDT Project\KDT-Project\src\main\java\choi\sdp_back\ai\company_docs.csv")
+>>>>>>> 08363241cb8fd388720ec4e6b16b7d5e0c05c6fe
     df.columns = ['Question', 'Answer']
     print(f"✅ 챗봇 데이터 {len(df)}개 로드 완료")
 
     okt = Okt()
     tfidf_vectorizer = TfidfVectorizer(tokenizer=okt.morphs)
     tfidf_matrix = tfidf_vectorizer.fit_transform(df['Question'].astype(str))
+<<<<<<< HEAD
 except:
     print("⚠️ 챗봇 데이터 로드 실패 (CSV 확인 필요)")
+=======
+# 수정 후 (어떤 에러인지 정확히 출력해줍니다)
+except Exception as e:
+    print(f"❌ 진짜 에러 원인: {e}")
+>>>>>>> 08363241cb8fd388720ec4e6b16b7d5e0c05c6fe
     df = pd.DataFrame()
 
 # ==========================================
