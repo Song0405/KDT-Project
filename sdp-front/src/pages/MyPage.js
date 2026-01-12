@@ -1,178 +1,103 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import './MyPage.css';
 
 function MyPage() {
     const navigate = useNavigate();
-    const storedId = localStorage.getItem("memberId");
-    const storedType = localStorage.getItem("memberType");
-    const [isEditing, setIsEditing] = useState(false);
-    const [myInfo, setMyInfo] = useState(null);
-    const [formData, setFormData] = useState({
-        currentPassword: '', newPassword: '', name: '', phoneNumber: '', email: ''
+
+    // ⭐ 팝업창 중복 방지를 위한 Ref
+    const hasAlerted = useRef(false);
+
+    const [userInfo, setUserInfo] = useState({
+        name: '',
+        joinDate: '',
+        email: ''
     });
 
-    // --- 1. 데이터 로드 (컴포넌트 마운트 및 정보 수정 후) ---
     useEffect(() => {
-        if (!storedId) {
-            navigate('/members/login');
+        // 로컬 스토리지에서 정보 가져오기
+        const storedName = localStorage.getItem('memberName');
+        const storedEmail = localStorage.getItem('memberEmail') || 'admin@rootstation.com';
+
+        // 1. 로그인이 안 된 경우 (이름 정보 없음)
+        if (!storedName) {
+            // ⭐ 경고창이 아직 안 떴을 때만 실행
+            if (!hasAlerted.current) {
+                hasAlerted.current = true; // 깃발 꽂기 (이제 떴음!)
+                alert("로그인이 필요한 서비스입니다.");
+                navigate('/members/login');
+            }
             return;
         }
-        // 사용자 정보 fetch
-        fetch(`http://localhost:8080/api/members/info?memberId=${storedId}&type=${storedType}`)
-            .then(res => res.json())
-            .then(data => {
-                setMyInfo(data);
-                setFormData(prev => ({
-                    ...prev,
-                    name: data.name,
-                    phoneNumber: data.phoneNumber,
-                    email: data.email,
-                    currentPassword: '',
-                    newPassword: ''
-                }));
-            })
-            .catch(err => console.error("데이터 동기화 실패", err));
-    }, [storedId, storedType, navigate]);
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+        // 2. 로그인 된 경우 정보 세팅
+        setUserInfo({
+            name: storedName,
+            joinDate: new Date().toLocaleDateString(), // 가입일은 현재 날짜로 임시 표시
+            email: storedName === '관리자' ? 'root_admin@server.com' : storedEmail
+        });
+    }, [navigate]);
 
-    // --- 2. 정보 수정 로직 ---
-    const handleUpdate = async () => {
-        if (!formData.currentPassword) {
-            alert("보안을 위해 현재 비밀번호를 입력해주세요.");
-            return;
-        }
-        try {
-            const response = await fetch('http://localhost:8080/api/members/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, memberId: storedId, type: storedType }),
-            });
-            if (response.ok) {
-                alert("프로필이 업데이트되었습니다! ✅");
-                setIsEditing(false);
-                window.location.reload();
-            } else {
-                alert(await response.text());
-            }
-        } catch (error) { alert("통신 중 서버 오류가 발생했습니다."); }
-    };
+    // 관리자 여부 확인
+    const isAdmin = userInfo.name === '관리자';
 
-    // --- 3. 회원 탈퇴 로직 ---
-    const handleWithdraw = async () => {
-        if (!window.confirm("정말로 스테이션을 폐쇄하고 탈퇴하시겠습니까? 😢")) return;
-        const pwd = prompt("보안 확인을 위해 비밀번호를 입력하세요.");
-        if (!pwd) return;
-        try {
-            const response = await fetch('http://localhost:8080/api/members/withdraw', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ memberId: storedId, type: storedType, currentPassword: pwd }),
-            });
-            if (response.ok) {
-                alert("탈퇴 처리가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");
-                localStorage.clear();
-                window.location.href = "/";
-            } else {
-                alert(await response.text());
-            }
-        } catch (error) { alert("오류가 발생했습니다."); }
-    };
-
-    if (!myInfo) return (
-        <div className="loading-container">
-            <div className="loader"></div>
-            <p>데이터 동기화 중...</p>
-        </div>
-    );
+    // 데이터가 로딩되기 전 깜빡임 방지 (로그인 안됐으면 화면 안그림)
+    if (!userInfo.name) return null;
 
     return (
-        <div className="mypage-page-wrapper">
-            <div className="mypage-container">
-                <header className="mypage-header">
-                    <h2 className="mypage-title">STATION <span className="highlight">PROFILE</span></h2>
-                    <p className="mypage-subtitle">나의 워크스테이션 계정 설정 및 정보를 관리합니다.</p>
-                </header>
+        <div className="mypage-container" style={{ color: 'white', padding: '50px 20px', maxWidth: '800px', margin: '0 auto' }}>
+            <h1 style={{ borderBottom: '2px solid #333', paddingBottom: '20px', marginBottom: '40px' }}>
+                MY PAGE
+            </h1>
 
-                {!isEditing ? (
-                    // --- [조회 모드] ---
-                    <div className="mypage-card view-mode">
-                        <div className="profile-badge">
-                            <span className="user-icon">👤</span>
-                            <div className="badge-text">
-                                <p className="user-name">{myInfo.name}</p>
-                                <p className="user-type">{myInfo.type === 'company' ? '기업 파트너' : '개인 멤버'}</p>
-                            </div>
-                        </div>
+            <div className="profile-card" style={{ display: 'flex', gap: '30px', alignItems: 'center', background: '#111', padding: '30px', borderRadius: '12px' }}>
+                {/* 프로필 이미지 영역 */}
+                <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: isAdmin ? '#3B82F6' : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
+                    {isAdmin ? '🛡️' : '👤'}
+                </div>
 
-                        <div className="info-grid">
-                            <div className="info-box">
-                                <label>아이디</label>
-                                <p>{myInfo.memberId}</p>
-                            </div>
-                            <div className="info-box">
-                                <label>이메일</label>
-                                <p>{myInfo.email}</p>
-                            </div>
-                            <div className="info-box">
-                                <label>전화번호</label>
-                                <p>{myInfo.phoneNumber}</p>
-                            </div>
-                            {myInfo.businessNumber && (
-                                <div className="info-box accent-box">
-                                    <label>사업자번호</label>
-                                    <p>{myInfo.businessNumber}</p>
-                                </div>
-                            )}
-                        </div>
+                <div className="profile-info">
+                    <h2 style={{ margin: '0 0 10px 0', fontSize: '1.8rem' }}>
+                        {userInfo.name} <span style={{ fontSize: '1rem', color: isAdmin ? '#3B82F6' : '#888', fontWeight: 'normal' }}>
+                            {isAdmin ? '[ SYSTEM ADMIN ]' : '[ BRONZE MEMBER ]'}
+                        </span>
+                    </h2>
+                    <p style={{ color: '#888', margin: '5px 0' }}>이메일: {userInfo.email}</p>
+                    <p style={{ color: '#666', margin: 0 }}>가입일: {userInfo.joinDate}</p>
+                </div>
+            </div>
 
-                        <div className="mypage-btn-group">
-                            <button onClick={() => setIsEditing(true)} className="btn-mypage btn-prime">정보 수정</button>
-                            <button onClick={handleWithdraw} className="btn-mypage btn-danger">계정 탈퇴</button>
+            <div className="dashboard-section" style={{ marginTop: '50px' }}>
+                {isAdmin ? (
+                    // ⭐ 관리자일 때 보이는 화면
+                    <div>
+                        <h3 style={{ color: '#3B82F6' }}>🛡️ 관리자 전용 메뉴</h3>
+                        <p style={{ color: '#999', marginBottom: '20px' }}>시스템 설정 및 주문 관리를 진행할 수 있습니다.</p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <Link to="/admin" style={adminButtonStyle}>
+                                ⚙️ 제품 및 공지 관리
+                            </Link>
+                            <Link to="/admin/orders" style={adminButtonStyle}>
+                                📦 전체 주문 공정 관리
+                            </Link>
                         </div>
                     </div>
                 ) : (
-                    // --- [수정 모드] ---
-                    <div className="mypage-card edit-mode">
-                        <h3 className="form-title">환경 설정 수정</h3>
-
-                        <div className="input-row">
-                            <div className="input-group">
-                                <label>성함 / 대표자명</label>
-                                <input name="name" value={formData.name} onChange={handleChange} className="mypage-input" />
-                            </div>
+                    // ⭐ 일반 회원일 때 보이는 화면
+                    <div>
+                        <h3>📦 나의 주문 내역</h3>
+                        <div style={{ background: '#1a1a1a', padding: '40px', textAlign: 'center', borderRadius: '8px', marginTop: '20px', color: '#666' }}>
+                            <p>최근 주문한 내역이 없습니다.</p>
+                            <Link to="/products" style={{ color: '#00d4ff', textDecoration: 'none', marginTop: '10px', display: 'inline-block' }}>
+                                쇼핑하러 가기 &rarr;
+                            </Link>
                         </div>
 
-                        <div className="input-row">
-                            <div className="input-group">
-                                <label>전화번호</label>
-                                <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="mypage-input" />
-                            </div>
-                            <div className="input-group">
-                                <label>이메일</label>
-                                <input name="email" value={formData.email} onChange={handleChange} className="mypage-input" />
-                            </div>
-                        </div>
-
-                        <div className="divider-neon"></div>
-
-                        <div className="input-row">
-                            <div className="input-group">
-                                <label>새 비밀번호 (선택)</label>
-                                <input type="password" name="newPassword" placeholder="변경 시에만 입력" onChange={handleChange} className="mypage-input highlight" />
-                            </div>
-                            <div className="input-group">
-                                <label>현재 비밀번호 (필수) <span className="req">*</span></label>
-                                <input type="password" name="currentPassword" placeholder="현재 비밀번호 입력" onChange={handleChange} className="mypage-input active" />
-                            </div>
-                        </div>
-
-                        <div className="mypage-btn-group">
-                            <button onClick={() => setIsEditing(false)} className="btn-mypage btn-cancel">취소</button>
-                            <button onClick={handleUpdate} className="btn-mypage btn-save">변경사항 저장</button>
+                        <h3 style={{ marginTop: '40px' }}>🔐 개인정보 관리</h3>
+                        <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
+                            <button style={outlineButtonStyle}>비밀번호 변경</button>
+                            <button style={outlineButtonStyle}>회원 탈퇴</button>
                         </div>
                     </div>
                 )}
@@ -180,5 +105,30 @@ function MyPage() {
         </div>
     );
 }
+
+// 간단한 인라인 스타일
+const adminButtonStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+    background: '#1e293b',
+    color: '#3B82F6',
+    textDecoration: 'none',
+    borderRadius: '8px',
+    fontWeight: 'bold',
+    fontSize: '1.1rem',
+    border: '1px solid #3B82F6',
+    transition: '0.3s'
+};
+
+const outlineButtonStyle = {
+    padding: '10px 20px',
+    background: 'transparent',
+    border: '1px solid #555',
+    color: '#aaa',
+    borderRadius: '4px',
+    cursor: 'pointer'
+};
 
 export default MyPage;
