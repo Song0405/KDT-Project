@@ -87,18 +87,23 @@ function App() {
                             <>
                                 <span style={styles.userInfo}>
                                     👤 <strong>{memberName}</strong>님
-                                    <span style={{ color: '#F97316', marginLeft: '8px', fontSize: '0.9em', fontWeight: 'bold' }}>
-                                        {memberType === 'company' ? '[기업]' : '[개인]'}
+                                    <span style={{
+                                        color: memberType === 'admin' ? '#EF4444' : '#F97316',
+                                        marginLeft: '8px',
+                                        fontSize: '0.9em',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {memberType === 'admin' ? '[관리자]' : (memberType === 'company' ? '[기업]' : '[개인]')}
                                     </span>
                                 </span>
                                 <button onClick={handleLogout} style={styles.textButton}>
-                                    로그아웃
+                                    LOGOUT
                                 </button>
                             </>
                         ) : (
                             <>
-                                <Link to="/members/login" style={styles.textLink}>로그인</Link>
-                                <Link to="/members/join" style={styles.textLink}>회원가입</Link>
+                                <Link to="/members/login" style={styles.textLink}>LOGIN</Link>
+                                <Link to="/members/join" style={styles.textLink}>SIGN-UP</Link>
                             </>
                         )}
 
@@ -126,13 +131,12 @@ function App() {
                             <div style={styles.menuColumn}>
                                 <h3>회원 서비스</h3>
                                 <Link to="/members/mypage" onClick={toggleMenu}>마이 페이지</Link>
-                                <Link to="/members/find" onClick={toggleMenu}>아이디/비번 찾기</Link>
-                                {!isAuthenticated && <Link to="/members/join" onClick={toggleMenu}>회원가입</Link>}
+
+                                {/* ⭐ [수정] 아이디 찾기/회원가입 삭제 -> 마이페이지만 남음 */}
                             </div>
 
                             <div style={styles.menuColumn}>
                                 <h3>주문/배송</h3>
-                                {/* ⭐ [수정] 장바구니, 견적요청 삭제하고 '배송 조회'만 남김 */}
                                 <Link to="/track" onClick={toggleMenu}>배송 조회</Link>
                             </div>
 
@@ -147,8 +151,6 @@ function App() {
                                 <Link to="/products" onClick={toggleMenu} style={{color: '#F97316', fontWeight: 'bold'}}>
                                     📦 제품 목록 (AI 추천)
                                 </Link>
-                                {/* 여기에도 배송조회, 장바구니, 견적요청이 있으므로 유지 */}
-                                <Link to="/track" onClick={toggleMenu}>배송 조회</Link>
                                 <Link to="#" style={{color:'#aaa', cursor:'default'}}>장바구니 (준비중)</Link>
                                 <Link to="#" style={{color:'#aaa', cursor:'default'}}>견적 요청 (준비중)</Link>
                             </div>

@@ -22,7 +22,7 @@ function AdminLoginPage({ setAuthenticated }) {
     // 1. 웹캠 켜기 함수
     const startWebcam = async () => {
         try {
-            setIsCamOpen(true); // 상태 변경 (UI 표시)
+            setIsCamOpen(true);
             setStatus("📸 카메라를 쳐다봐주세요");
 
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -43,11 +43,11 @@ function AdminLoginPage({ setAuthenticated }) {
             tracks.forEach(track => track.stop());
             videoRef.current.srcObject = null;
         }
-        setIsCamOpen(false); // 상태 변경 (UI 숨김)
+        setIsCamOpen(false);
         setStatus("");
     };
 
-    // 3. 얼굴 인식 시도 (파이썬 서버로 사진 전송)
+    // 3. 얼굴 인식 시도
     const handleFaceLogin = async () => {
         if (!videoRef.current || !canvasRef.current) return;
 
@@ -55,16 +55,13 @@ function AdminLoginPage({ setAuthenticated }) {
         const video = videoRef.current;
         const canvas = canvasRef.current;
 
-        // 현재 화면 캡처
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext('2d').drawImage(video, 0, 0);
 
-        // 이미지 데이터 변환 (Base64)
         const imageData = canvas.toDataURL('image/jpeg');
 
         try {
-            // ⭐ 파이썬 서버(5002번)로 전송
             const response = await fetch('http://localhost:5002/verify-face', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -75,9 +72,15 @@ function AdminLoginPage({ setAuthenticated }) {
 
             if (data.status === 'success') {
                 setStatus("✅ 인증 성공! 환영합니다.");
+
+                // ⭐ [추가] 관리자 정보 저장 (로그인 상태 변경 전에!)
+                localStorage.setItem("memberId", "admin");
+                localStorage.setItem("memberName", "관리자");
+                localStorage.setItem("memberType", "admin");
+
                 alert(data.msg);
                 setTimeout(() => {
-                    stopWebcam(); // 성공하면 캠 끄기
+                    stopWebcam();
                     setAuthenticated(true);
                 }, 1000);
             } else {
@@ -89,10 +92,15 @@ function AdminLoginPage({ setAuthenticated }) {
         }
     };
 
-    // 기존 비밀번호 로그인
+    // 4. 비밀번호 로그인
     const handlePasswordLogin = (e) => {
         e.preventDefault();
         if (password === ADMIN_PASSWORD) {
+            // ⭐ [추가] 관리자 정보 저장 (핵심!)
+            localStorage.setItem("memberId", "admin");
+            localStorage.setItem("memberName", "관리자");
+            localStorage.setItem("memberType", "admin");
+
             setAuthenticated(true);
         } else {
             setError('비밀번호가 올바르지 않습니다.');
@@ -108,7 +116,6 @@ function AdminLoginPage({ setAuthenticated }) {
                 {/* --- 1. 얼굴 인식 섹션 --- */}
                 <div style={{ marginBottom: '30px', borderBottom: '1px solid #374151', paddingBottom: '20px' }}>
 
-                    {/* 카메라가 꺼져있을 때 보이는 버튼 */}
                     {!isCamOpen ? (
                         <button
                             onClick={startWebcam}
@@ -117,7 +124,6 @@ function AdminLoginPage({ setAuthenticated }) {
                             📸 얼굴 인식 모드 켜기
                         </button>
                     ) : (
-                        // 카메라가 켜졌을 때 보이는 화면
                         <div className="webcam-area" style={{ animation: 'fadeIn 0.5s' }}>
                             <div style={{ background: '#000', borderRadius: '8px', overflow: 'hidden', marginBottom: '15px' }}>
                                 <video ref={videoRef} autoPlay muted style={{ width: '100%', height: '250px', objectFit: 'cover' }}></video>
@@ -131,13 +137,13 @@ function AdminLoginPage({ setAuthenticated }) {
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <button
                                     onClick={handleFaceLogin}
-                                    style={{ flex: 2, background: '#10B981' }} // 초록색 버튼
+                                    style={{ flex: 2, background: '#10B981' }}
                                 >
                                     ✅ 인증하기
                                 </button>
                                 <button
                                     onClick={stopWebcam}
-                                    style={{ flex: 1, background: '#EF4444' }} // 빨간색 버튼
+                                    style={{ flex: 1, background: '#EF4444' }}
                                 >
                                     닫기
                                 </button>
