@@ -13,7 +13,7 @@ import JoinPage from './pages/JoinPage';
 import LoginPage from './pages/LoginPage';
 import MyPage from './pages/MyPage';
 import FindPage from './pages/FindPage';
-import NoticePage from './pages/NoticePage'; // ✅ [추가] 공지사항 페이지 가져오기
+import NoticePage from './pages/NoticePage';
 import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
 
@@ -26,7 +26,10 @@ function App() {
     // 2. 사용자 이름 상태 관리
     const [memberName, setMemberName] = useState(localStorage.getItem('memberName') || '');
 
-    // 3. 전체 메뉴 토글 상태 관리
+    // 3. 회원 타입 상태 관리
+    const [memberType, setMemberType] = useState(localStorage.getItem('memberType') || '');
+
+    // 4. 전체 메뉴 토글 상태 관리
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const location = useLocation();
@@ -37,6 +40,7 @@ function App() {
         localStorage.setItem('isAuthenticated', isAuthenticated);
         if(isAuthenticated) {
             setMemberName(localStorage.getItem('memberName'));
+            setMemberType(localStorage.getItem('memberType'));
         }
     }, [isAuthenticated]);
 
@@ -45,6 +49,7 @@ function App() {
         setIsAuthenticated(false);
         localStorage.clear();
         setMemberName('');
+        setMemberType('');
         alert("로그아웃 되었습니다.");
         navigate('/');
     };
@@ -67,7 +72,7 @@ function App() {
                     {/* 오른쪽 네비게이션 */}
                     <div style={styles.topNav}>
 
-                        {/* 1. HOME 버튼 (로그인 왼쪽) */}
+                        {/* 1. HOME 버튼 */}
                         <NavLink
                             to="/"
                             style={({ isActive }) => (isActive ? styles.activeLink : styles.link)}
@@ -82,15 +87,18 @@ function App() {
                             <>
                                 <span style={styles.userInfo}>
                                     👤 <strong>{memberName}</strong>님
+                                    <span style={{ color: '#F97316', marginLeft: '8px', fontSize: '0.9em', fontWeight: 'bold' }}>
+                                        {memberType === 'company' ? '[기업]' : '[개인]'}
+                                    </span>
                                 </span>
                                 <button onClick={handleLogout} style={styles.textButton}>
-                                    LOGOUT
+                                    로그아웃
                                 </button>
                             </>
                         ) : (
                             <>
-                                <Link to="/members/login" style={styles.textLink}>LOGIN</Link>
-                                <Link to="/members/join" style={styles.textLink}>SIGN-UP</Link>
+                                <Link to="/members/login" style={styles.textLink}>로그인</Link>
+                                <Link to="/members/join" style={styles.textLink}>회원가입</Link>
                             </>
                         )}
 
@@ -104,7 +112,7 @@ function App() {
                 </div>
             </header>
 
-            {/* --- 전체 메뉴 오버레이 (버튼 누르면 나타남) --- */}
+            {/* --- 전체 메뉴 오버레이 --- */}
             {isMenuOpen && (
                 <div style={styles.fullMenuOverlay}>
                     <div style={styles.fullMenuContainer}>
@@ -121,23 +129,25 @@ function App() {
                                 <Link to="/members/find" onClick={toggleMenu}>아이디/비번 찾기</Link>
                                 {!isAuthenticated && <Link to="/members/join" onClick={toggleMenu}>회원가입</Link>}
                             </div>
+
                             <div style={styles.menuColumn}>
                                 <h3>주문/배송</h3>
+                                {/* ⭐ [수정] 장바구니, 견적요청 삭제하고 '배송 조회'만 남김 */}
                                 <Link to="/track" onClick={toggleMenu}>배송 조회</Link>
-                                <Link to="#" style={{color:'#aaa', cursor:'default'}}>장바구니 (준비중)</Link>
-                                <Link to="#" style={{color:'#aaa', cursor:'default'}}>견적 요청 (준비중)</Link>
                             </div>
+
                             <div style={styles.menuColumn}>
                                 <h3>고객 지원</h3>
-                                {/* ⭐ [수정] 공지사항 클릭 시 페이지 이동 */}
                                 <Link to="/notices" onClick={toggleMenu}>공지사항</Link>
                                 <Link to="#" style={{color:'#aaa', cursor:'default'}}>자주 묻는 질문</Link>
                             </div>
+
                             <div style={styles.menuColumn}>
                                 <h3>제품/주문</h3>
                                 <Link to="/products" onClick={toggleMenu} style={{color: '#F97316', fontWeight: 'bold'}}>
                                     📦 제품 목록 (AI 추천)
                                 </Link>
+                                {/* 여기에도 배송조회, 장바구니, 견적요청이 있으므로 유지 */}
                                 <Link to="/track" onClick={toggleMenu}>배송 조회</Link>
                                 <Link to="#" style={{color:'#aaa', cursor:'default'}}>장바구니 (준비중)</Link>
                                 <Link to="#" style={{color:'#aaa', cursor:'default'}}>견적 요청 (준비중)</Link>
@@ -156,7 +166,6 @@ function App() {
                     <Route path="/members/find" element={<FindPage />} />
                     <Route path="/members/mypage" element={<MyPage />} />
 
-                    {/* ✅ [추가] 공지사항 페이지 경로 연결 */}
                     <Route path="/notices" element={<NoticePage />} />
 
                     <Route
@@ -165,7 +174,6 @@ function App() {
                     />
                     <Route path="/track" element={<OrderSearchPage />} />
                     <Route path="/admin/orders" element={<OrderManagePage />} />
-                    {/* ⭐ [NEW] 제품 페이지 경로 연결! */}
                     <Route path="/products" element={<ProductListPage />} />
                     <Route path="/products/:id" element={<ProductDetailPage />} />
                 </Routes>
