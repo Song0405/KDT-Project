@@ -1,0 +1,88 @@
+/* 전체 컨테이너 */
+.search-container {
+    position: relative; /* 검색 결과창 위치 잡기 위해 필요 */
+    text-align: center;
+    width: 100%;
+    max-width: 500px; /* 검색창 최대 너비 */
+    margin: 0 auto;   /* 중앙 정렬 */
+}
+
+/* 검색 입력창 */
+.search-input {
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00f2ff; /* 네온 블루 */
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    width: 70%;
+    border-radius: 30px;
+    outline: none;
+    transition: 0.3s;
+}
+
+.search-input:focus {
+    box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+}
+
+/* 검색 버튼 */
+.search-button {
+    background: #00f2ff;
+    border: none;
+    color: black;
+    padding: 12px 25px;
+    margin-left: 10px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+.search-button:hover {
+    background: white;
+    box-shadow: 0 0 15px #00f2ff;
+    transform: scale(1.05);
+}
+
+/* 검색 결과 드롭다운 (중요!) */
+.search-results-dropdown {
+    position: absolute;
+    top: 110%; /* 검색창 바로 아래 */
+    left: 0;
+    right: 0;
+    background: rgba(20, 20, 20, 0.95);
+    border: 1px solid #333;
+    border-radius: 10px;
+    z-index: 1000; /* 다른 요소보다 위에 뜨게 */
+    max-height: 300px;
+    overflow-y: auto; /* 결과 많으면 스크롤 */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* 결과 아이템 하나하나 */
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 20px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: 0.2s;
+    color: #eee;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background: rgba(0, 242, 255, 0.1); /* 마우스 올리면 살짝 파란빛 */
+}
+
+.result-name {
+    font-weight: bold;
+}
+
+.result-price {
+    color: #00f2ff;
+    font-family: 'Courier New', monospace;
+}

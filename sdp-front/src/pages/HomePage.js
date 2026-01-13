@@ -1,33 +1,44 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // ⭐ 페이지 이동을 위해 추가
+import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
+import SearchBar from '../components/SearchBar'; // 👈 임포트는 잘 되어 있습니다!
 
+// 백엔드 API 및 이미지 서버 설정
 const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
+// 셋업 가이드 데이터
 const processSteps = [
     {
-        id: 1, title: "의뢰 (Request)", icon: "🤝",
-        details: ["고객 요구사항 분석", "주문 접수", "스펙 협의"]
+        id: 1,
+        title: "맞춤 큐레이션",
+        icon: "🔍",
+        details: ["사용자 데스크 환경 정밀 분석", "최적의 하이엔드 장비 선별", "최신 데스크테리어 트렌드 반영"]
     },
     {
-        id: 2, title: "설계 (Design)", icon: "💻",
-        details: ["도면 작성", "공정 계획", "자재 선정", "시뮬레이션"]
+        id: 2,
+        title: "호환성 검토",
+        icon: "⚙️",
+        details: ["하드웨어 간 연결 및 호환성 검증", "데스크 공간 효율 및 동선 계산", "모니터 암 및 거치대 최적 배치"]
     },
     {
-        id: 3, title: "제작 (Fabrication)", icon: "⚒️",
-        details: ["원자재 가공", "용접", "절곡", "정밀 가공"]
+        id: 3,
+        title: "개인 커스터마이징",
+        icon: "✨",
+        details: ["사용자 맞춤형 키보드 빌드", "무드 조명 및 데스크 매트 스타일링", "세상에 하나뿐인 독창적인 워크스테이션"]
     },
     {
-        id: 4, title: "납품 (Delivery)", icon: "🚚",
-        details: ["품질 검사", "포장", "출하", "설치 지원"]
+        id: 4,
+        title: "퍼포먼스 최적화",
+        icon: "🚀",
+        details: ["업무 몰입도 극대화를 위한 환경 세팅", "워크플로우 및 생산성 향상 가이드", "지속적인 셋업 업그레이드 지원"]
     }
 ];
 
 // 이미지 비율 유지 컴포넌트
 const ProductImageWithRatio = ({ product }) => {
-    const [imageRatio, setImageRatio] = useState(75); // 기본값 4:3 (75%)
+    const [imageRatio, setImageRatio] = useState(75);
     const imgRef = useRef();
 
     useEffect(() => {
@@ -54,7 +65,7 @@ const ProductImageWithRatio = ({ product }) => {
                 src={`${IMAGE_SERVER_URL}/${product.imageFileName}`}
                 alt={product.name}
                 className="product-image"
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'; }}
+                onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Root+Station+Gear'; }}
             />
         </div>
     );
@@ -64,98 +75,109 @@ function HomePage() {
     const [companyInfo, setCompanyInfo] = useState(null);
     const [products, setProducts] = useState([]);
     const [error, setError] = useState(null);
-
-    // ⭐ 페이지 이동 훅 사용
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const companyRes = await axios.get(`${API_BASE_URL}/company-info`);
+                const [companyRes, productsRes] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/company-info`),
+                    axios.get(`${API_BASE_URL}/products`)
+                ]);
                 setCompanyInfo(companyRes.data);
-
-                const productsRes = await axios.get(`${API_BASE_URL}/products`);
                 setProducts(productsRes.data);
                 setError(null);
             } catch (err) {
-                console.error("데이터를 불러오는데 실패했습니다.", err);
-                setError("데이터를 불러올 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.");
+                console.error("데이터 로드 중 오류 발생:", err);
+                setError("서버 데이터를 불러오는 데 실패했습니다.");
             }
         };
         fetchData();
     }, []);
 
-
     return (
         <div className="home-page-container">
-            {/* 히어로 섹션 */}
-            {companyInfo && (
-                <section className="hero-section">
-                    <img src="/images/hero-background.jpg" alt="Steel Mill Background" className="hero-image" />
-                    <div className="hero-content">
-                        <h1>{companyInfo.name}</h1>
-                        <p>{companyInfo.description}</p>
-                        {/* 버튼 클릭 시 제품 목록 페이지로 이동 */}
-                        <button onClick={() => navigate('/products')} className="hero-button" style={{cursor:'pointer'}}>
-                            OUR PRODUCTS
+            {/* 1. 히어로 섹션 */}
+            <section className="hero-section">
+                <div className="hero-background-effects">
+                    <div className="glow-circle top-left"></div>
+                    <div className="glow-circle bottom-right"></div>
+                    <div className="grid-overlay"></div>
+                </div>
+
+                <div className="hero-content">
+                    <span className="hero-tagline">// BUILD YOUR ULTIMATE WORKSTATION</span>
+                    <h1 className="brand-logo-text">ROOT STATION</h1>
+
+                    {/* 👇 [수정됨] 검색창을 여기에 배치했습니다! 👇 */}
+                    <div style={{ marginTop: '20px', marginBottom: '30px' }}>
+                        <SearchBar />
+                    </div>
+
+                    <p className="hero-subtext">
+                        단순한 책상을 넘어, 당신의 몰입을 완성하는<br/>
+                        가장 정교한 커스텀 워크스테이션 기어 큐레이션.
+                    </p>
+                    <div className="hero-actions">
+                        <button onClick={() => navigate('/products')} className="hero-button primary">
+                            SHOP GEARS
+                        </button>
+                        <button className="hero-button secondary">
+                            VIEW SETUP GUIDE
                         </button>
                     </div>
-                </section>
-            )}
+                </div>
+            </section>
 
             {error && <div className="error-message">{error}</div>}
 
-            {/* 회사 소개 섹션 */}
-            <div className="info-section">
-                <h2>회사 소개</h2>
-                {companyInfo ? (
-                    <div>
-                        <p>{companyInfo.description}</p>
-                        <p>주소: {companyInfo.address}</p>
-                        <p>전화: {companyInfo.phone}</p>
-                        <p>이메일: {companyInfo.email}</p>
-                    </div>
-                ) : <p>회사 정보를 불러오는 중...</p>}
-            </div>
-
-            {/* 주요 제품 섹션 */}
-            <div id="products" className="info-section">
-                <h2>주요 제품</h2>
+            {/* 2. 주요 제품 섹션 */}
+            <section id="products" className="info-section">
+                <div className="section-header">
+                    <h2>Featured Gears</h2>
+                    <p>전문가들이 엄선한 고성능 데스크 기어</p>
+                </div>
                 {products.length > 0 ? (
                     <div className="product-grid">
                         {products.map(product => (
                             <div
                                 key={product.id}
                                 className="product-card"
-                                // ⭐⭐⭐ [수정됨] 클릭 시 상세 페이지로 이동! ⭐⭐⭐
                                 onClick={() => navigate(`/products/${product.id}`)}
                             >
                                 {product.imageFileName && (
                                     <ProductImageWithRatio product={product} />
                                 )}
                                 <div className="product-card-body">
+                                    <span className="category-tag">PREMIUM SELECTION</span>
                                     <h3>{product.name}</h3>
-                                    <p className="product-description">
-                                        {product.description.length > 80
-                                            ? `${product.description.substring(0, 80)}...`
+                                    <p className="product-card-desc">
+                                        {product.description && product.description.length > 60
+                                            ? `${product.description.substring(0, 60)}...`
                                             : product.description}
                                     </p>
-                                    <p className="product-price">{product.price?.toLocaleString()}원</p>
+                                    <p className="product-price">
+                                        {product.price ? product.price.toLocaleString() : 0} KRW
+                                    </p>
                                 </div>
                             </div>
                         ))}
                     </div>
-                ) : <p>등록된 제품이 없습니다.</p>}
-            </div>
+                ) : <div className="loading-text">새로운 장비들이 입고될 예정입니다.</div>}
+            </section>
 
-            {/* 제조 공정 섹션 */}
-            <div className="info-section">
-                <h2>제조 공정</h2>
+            {/* 3. 셋업 가이드 섹션 */}
+            <section className="info-section process-section">
+                <div className="section-header">
+                    <h2>The Setup Guide</h2>
+                    <p>최상의 워크스테이션을 구축하는 4단계 과정</p>
+                </div>
                 <div className="process-horizontal-container">
                     {processSteps.map((step, index) => (
                         <div key={step.id} className="process-step-box">
                             <div className="process-step-header">
                                 <span className="step-icon">{step.icon}</span>
+                                <div className="step-number">STEP 0{index + 1}</div>
                                 <h3>{step.title}</h3>
                             </div>
                             <ul className="process-detail-list">
@@ -163,11 +185,16 @@ function HomePage() {
                                     <li key={idx}>{detail}</li>
                                 ))}
                             </ul>
-                            {index < processSteps.length - 1 && <div className="process-arrow">▶</div>}
+                            {index < processSteps.length - 1 && <div className="process-arrow">→</div>}
                         </div>
                     ))}
                 </div>
-            </div>
+            </section>
+
+            {/* 4. 푸터 */}
+            <footer className="home-footer">
+                <p>&copy; 2026 ROOT STATION. All Rights Reserved.</p>
+            </footer>
         </div>
     );
 }

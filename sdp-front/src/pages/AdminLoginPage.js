@@ -75,6 +75,7 @@ function AdminLoginPage({ setAuthenticated }) {
 
             if (data.status === 'success') {
                 setStatus("✅ 인증 성공! 환영합니다.");
+                alert(data.msg);
                 setTimeout(() => {
                     stopWebcam(); // 성공하면 캠 끄기
                     setAuthenticated(true);
