@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
+import SearchBar from '../components/SearchBar'; // 👈 임포트는 잘 되어 있습니다!
 
 // 백엔드 API 및 이미지 서버 설정
 const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
-// 셋업 가이드 데이터 (한국어 전문 버전)
+// 셋업 가이드 데이터
 const processSteps = [
     {
         id: 1,
@@ -35,9 +36,9 @@ const processSteps = [
     }
 ];
 
-// 이미지 비율 유지 및 로딩 처리를 위한 컴포넌트
+// 이미지 비율 유지 컴포넌트
 const ProductImageWithRatio = ({ product }) => {
-    const [imageRatio, setImageRatio] = useState(75); // 기본 4:3 비율
+    const [imageRatio, setImageRatio] = useState(75);
     const imgRef = useRef();
 
     useEffect(() => {
@@ -76,7 +77,6 @@ function HomePage() {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    // 데이터 호출 (Spring Boot 백엔드 연동)
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -108,6 +108,12 @@ function HomePage() {
                 <div className="hero-content">
                     <span className="hero-tagline">// BUILD YOUR ULTIMATE WORKSTATION</span>
                     <h1 className="brand-logo-text">ROOT STATION</h1>
+
+                    {/* 👇 [수정됨] 검색창을 여기에 배치했습니다! 👇 */}
+                    <div style={{ marginTop: '20px', marginBottom: '30px' }}>
+                        <SearchBar />
+                    </div>
+
                     <p className="hero-subtext">
                         단순한 책상을 넘어, 당신의 몰입을 완성하는<br/>
                         가장 정교한 커스텀 워크스테이션 기어 큐레이션.
@@ -146,11 +152,13 @@ function HomePage() {
                                     <span className="category-tag">PREMIUM SELECTION</span>
                                     <h3>{product.name}</h3>
                                     <p className="product-card-desc">
-                                        {product.description.length > 60
+                                        {product.description && product.description.length > 60
                                             ? `${product.description.substring(0, 60)}...`
                                             : product.description}
                                     </p>
-                                    <p className="product-price">{product.price?.toLocaleString()} KRW</p>
+                                    <p className="product-price">
+                                        {product.price ? product.price.toLocaleString() : 0} KRW
+                                    </p>
                                 </div>
                             </div>
                         ))}
@@ -158,7 +166,7 @@ function HomePage() {
                 ) : <div className="loading-text">새로운 장비들이 입고될 예정입니다.</div>}
             </section>
 
-            {/* 3. 셋업 가이드 섹션 (한국어 적용) */}
+            {/* 3. 셋업 가이드 섹션 */}
             <section className="info-section process-section">
                 <div className="section-header">
                     <h2>The Setup Guide</h2>

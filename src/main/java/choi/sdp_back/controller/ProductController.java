@@ -61,4 +61,9 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam("keyword") String keyword) {
+        System.out.println("🔍 검색 요청 들어옴: " + keyword);
+        return ResponseEntity.ok(productService.searchProducts(keyword));
+    }
 }
