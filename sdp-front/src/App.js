@@ -13,6 +13,7 @@ import FindPage from './pages/FindPage';
 import NoticePage from './pages/NoticePage';
 import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
+import ContactPage from './pages/ContactPage'; // 문의하기 페이지 추가
 import './index.css';
 
 function App() {
@@ -115,6 +116,7 @@ function App() {
                             <div style={styles.menuColumn}>
                                 <h3 style={styles.columnTitle}>SUPPORT</h3>
                                 <Link style={styles.menuItem} to="/notices" onClick={toggleMenu}>공지사항</Link>
+                                <Link style={styles.menuItem} to="/contact" onClick={toggleMenu}>문의하기</Link>
                                 {/* 관리자 모드 링크 */}
                                 <Link style={styles.menuItem} to="/admin" onClick={toggleMenu} style={{color: '#bb86fc'}}>관리자 모드</Link>
                             </div>
@@ -134,6 +136,7 @@ function App() {
                     <Route path="/track" element={<OrderSearchPage />} />
                     <Route path="/products" element={<ProductListPage />} />
                     <Route path="/products/:id" element={<ProductDetailPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
 
                     <Route path="/admin" element={
                         <ProtectedAdminRoute>
