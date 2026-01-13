@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ProductDetailPage.css';
 
+// ⭐ [추가] 결제 버튼 컴포넌트 임포트 (경로 확인 필요)
+import PaymentButton from '../../components/PaymentButton';
+
 const API_BASE_URL = 'http://localhost:8080/api/products';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
@@ -10,6 +13,13 @@ function ProductDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
+
+    // ⭐ [추가] 결제에 필요한 사용자 정보 가져오기 (로그인 정보)
+    const userInfo = {
+        name: localStorage.getItem('memberName') || 'Unknown Agent',
+        email: localStorage.getItem('memberEmail') || 'guest@rootstation.com',
+        tel: localStorage.getItem('memberTel') || '010-0000-0000'
+    };
 
     useEffect(() => {
         axios.get(`${API_BASE_URL}/${id}`)
@@ -57,7 +67,7 @@ function ProductDetailPage() {
                     <div className="specs-header">
                         <span className="category-label">// {product.category || 'PREMIUM GEAR'}</span>
                         <h2 className="gear-title">{product.name}</h2>
-                        <div className="gear-price-tag">{product.price?.toLocaleString()} KRW</div>
+                        <div className="gear-price-tag">{Number(product.price).toLocaleString()} KRW</div>
                     </div>
 
                     <div className="specs-body">
@@ -67,7 +77,9 @@ function ProductDetailPage() {
                         </div>
 
                         <div className="action-buttons">
-                            <button className="btn-buy-now">ACQUIRE GEAR</button>
+                            {/* ⭐ [변경] 기존 'ACQUIRE GEAR' 버튼을 PaymentButton으로 교체 */}
+                            <PaymentButton productInfo={product} userInfo={userInfo} />
+
                             <button className="btn-cart-add">ADD TO SYSTEM</button>
                         </div>
                     </div>
