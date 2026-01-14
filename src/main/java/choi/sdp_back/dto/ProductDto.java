@@ -16,6 +16,7 @@ public class ProductDto {
     private Integer price;
     private String category;
     private String imageFileName;
+    private String usageType;
 
     // (기존에 from 메서드가 있었다면 그대로 두셔도 됩니다)
     public static ProductDto from(Product product) {
@@ -26,6 +27,7 @@ public class ProductDto {
                 .description(product.getDescription())
                 .category(product.getCategory())
                 .imageFileName(product.getImageFileName())
+                .usageType(product.getUsageType())
                 .build();
     }
 }

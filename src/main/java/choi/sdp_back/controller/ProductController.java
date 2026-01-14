@@ -21,8 +21,9 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public ResponseEntity<List<ProductDto>> getProducts(@RequestParam(value = "usage", required = false) String usage) {
+        System.out.println("요청된 카테고리: " + usage); // 로그 확인용
+        return ResponseEntity.ok(productService.getProductsByUsage(usage));
     }
 
     @GetMapping("/{id}")
