@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ProductDetailPage.css';
-
-// ⭐ [추가] 결제 버튼 컴포넌트 임포트 (경로 확인 필요)
 import PaymentButton from '../../components/PaymentButton';
 
 const API_BASE_URL = 'http://localhost:8080/api/products';
@@ -14,7 +12,6 @@ function ProductDetailPage() {
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
 
-    // ⭐ [추가] 결제에 필요한 사용자 정보 가져오기 (로그인 정보)
     const userInfo = {
         name: localStorage.getItem('memberName') || 'Unknown Agent',
         email: localStorage.getItem('memberEmail') || 'guest@rootstation.com',
@@ -30,6 +27,35 @@ function ProductDetailPage() {
             });
     }, [id, navigate]);
 
+    // ⭐ [추가] 장바구니 담기 기능
+    const addToCart = async () => {
+        // 1. 로그인 체크 (Unknown Agent면 로그인 유도)
+        if (!userInfo.name || userInfo.name === 'Unknown Agent') {
+            alert('로그인이 필요한 기능입니다.');
+            navigate('/members/login');
+            return;
+        }
+
+        try {
+            // 2. 서버로 전송
+            await axios.post('http://localhost:8080/api/cart', {
+                memberName: userInfo.name,
+                productId: product.id,
+                productName: product.name,
+                price: product.price,
+                imageUrl: product.imageUrl ? (product.imageUrl.startsWith('http') ? product.imageUrl : `${IMAGE_SERVER_URL}/${product.imageUrl}`) : ''
+            });
+
+            // 3. 성공 시 이동 확인
+            if(window.confirm('장바구니에 아이템이 추가되었습니다.\n장바구니로 이동하시겠습니까?')) {
+                navigate('/cart');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('장바구니 담기 실패: 서버 오류가 발생했습니다.');
+        }
+    };
+
     if (!product) return (
         <div className="product-loading-wrapper">
             <div className="cyber-loader"></div>
@@ -43,8 +69,8 @@ function ProductDetailPage() {
 
     return (
         <div className="detail-page-wrapper">
-            {/* 상단 컨트롤 바 */}
             <div className="detail-control-bar">
+                {/* 뒤로가기 버튼 (현재 잘 작동하는 코드 유지) */}
                 <button className="btn-back-glow" onClick={() => navigate('/products')}>
                     <span className="arrow">←</span> BACK TO LIBRARY
                 </button>
@@ -54,7 +80,6 @@ function ProductDetailPage() {
             </div>
 
             <div className="detail-main-layout">
-                {/* 왼쪽: 제품 시각화 영역 */}
                 <div className="detail-visual-section">
                     <div className="image-frame">
                         <img src={imgUrl} alt={product.name} className="main-gear-img" />
@@ -62,7 +87,6 @@ function ProductDetailPage() {
                     </div>
                 </div>
 
-                {/* 오른쪽: 사양 및 분석 영역 */}
                 <div className="detail-specs-section">
                     <div className="specs-header">
                         <span className="category-label">// {product.category || 'PREMIUM GEAR'}</span>
@@ -76,15 +100,22 @@ function ProductDetailPage() {
                             <p>{product.description}</p>
                         </div>
 
-                        <div className="action-buttons">
-                            {/* ⭐ [변경] 기존 'ACQUIRE GEAR' 버튼을 PaymentButton으로 교체 */}
+                        {/* ⭐ 버튼 영역 수정 */}
+                        <div className="action-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            {/* 1. 결제 버튼 (기존 유지) */}
                             <PaymentButton productInfo={product} userInfo={userInfo} />
 
-                            <button className="btn-cart-add">ADD TO SYSTEM</button>
+                            {/* 2. [신규] 장바구니 담기 버튼 (기존 ADD TO SYSTEM 대체) */}
+                            <button
+                                className="btn-cart-action"
+                                onClick={addToCart}
+                            >
+                                🛒 ADD TO CART (장바구니)
+                            </button>
                         </div>
                     </div>
 
-                    {/* AI 추천 리포트 섹션 */}
+                    {/* AI 추천 리포트 섹션 (기존 위치 유지) */}
                     {product.recommendations && product.recommendations.length > 0 && (
                         <div className="ai-analysis-box">
                             <div className="ai-header">

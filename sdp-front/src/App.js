@@ -14,6 +14,7 @@ import NoticePage from './pages/NoticePage';
 import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
 import './index.css';
+import CartPage from "./pages/CartPage";
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -111,6 +112,9 @@ function App() {
                                 <h3 style={styles.columnTitle}>SHOPPING</h3>
                                 <Link style={styles.menuItem} to="/products" onClick={toggleMenu}>제품 목록</Link>
                                 <Link style={styles.menuItem} to="/track" onClick={toggleMenu}>주문/배송 조회</Link>
+                                <Link style={styles.menuItem} to="/cart" onClick={toggleMenu}>
+                                    장바구니 (CART)
+                                </Link>
                             </div>
                             <div style={styles.menuColumn}>
                                 <h3 style={styles.columnTitle}>SUPPORT</h3>
@@ -134,7 +138,7 @@ function App() {
                     <Route path="/track" element={<OrderSearchPage />} />
                     <Route path="/products" element={<ProductListPage />} />
                     <Route path="/products/:id" element={<ProductDetailPage />} />
-
+                    <Route path="/cart" element={<CartPage />} />
                     <Route path="/admin" element={
                         <ProtectedAdminRoute>
                             <AdminPage />

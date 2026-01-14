@@ -194,3 +194,29 @@
     font-weight: bold;
     letter-spacing: 2px;
 }
+
+/* 장바구니 담기 버튼 스타일 (보라색 네온) */
+.btn-cart-action {
+    width: 100%;
+    padding: 20px;
+    background: transparent;
+    border: 2px solid #bb86fc;
+    color: #bb86fc;
+    font-size: 1rem;
+    font-weight: 800;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-cart-action:hover {
+    background: #bb86fc;
+    color: #000;
+    box-shadow: 0 0 20px rgba(187, 134, 252, 0.4);
+}

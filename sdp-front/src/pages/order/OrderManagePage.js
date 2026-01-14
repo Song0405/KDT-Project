@@ -1,18 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Order.css'; // 보내주신 CSS 파일 적용
+import './Order.css';
 
 function OrderManagePage() {
     const navigate = useNavigate();
-    const [orders, setOrders] = useState([]);
-
-    // 수동 추가 폼 상태
-    const [newOrder, setNewOrder] = useState({ memberName: '', productName: '', price: '' });
-    const [filterTerm, setFilterTerm] = useState(''); // 검색어
+    const [rawOrders, setRawOrders] = useState([]); // 서버에서 받은 원본 데이터
+    const [filterTerm, setFilterTerm] = useState('');
 
     useEffect(() => {
-        // 관리자 권한 체크
         const user = localStorage.getItem('memberName');
         if (user !== '관리자') {
             alert('관리자만 접근 가능합니다.');
@@ -22,51 +18,67 @@ function OrderManagePage() {
         fetchOrders();
     }, [navigate]);
 
-    // 주문 목록 불러오기
     const fetchOrders = async () => {
         try {
-            // ⭐ 우리가 만든 전체 조회 API 주소
             const res = await axios.get('http://localhost:8080/api/shop-orders/all');
-            setOrders(res.data);
+            setRawOrders(res.data);
         } catch (error) {
             console.error("데이터 동기화 실패:", error);
         }
     };
 
-    // 검색 필터링 로직
-    const filteredOrders = useMemo(() => {
-        return orders.filter(order =>
-            (order.memberName && order.memberName.toLowerCase().includes(filterTerm.toLowerCase())) ||
-            (order.productName && order.productName.toLowerCase().includes(filterTerm.toLowerCase())) ||
-            (order.merchantUid && order.merchantUid.toLowerCase().includes(filterTerm.toLowerCase()))
+    // ⭐ [핵심] 같은 주문번호끼리 그룹화하는 함수
+    const groupedOrders = useMemo(() => {
+        const groups = {};
+
+        rawOrders.forEach(order => {
+            const uid = order.merchantUid;
+            if (!groups[uid]) {
+                groups[uid] = {
+                    merchantUid: uid,
+                    memberName: order.memberName,
+                    orderDate: order.orderDate,
+                    items: [], // 여기에 개별 상품들을 담음
+                    totalPrice: 0
+                };
+            }
+            groups[uid].items.push(order);
+            groups[uid].totalPrice += order.price;
+        });
+
+        // 객체를 배열로 변환하고 최신순 정렬
+        return Object.values(groups).sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+    }, [rawOrders]);
+
+    // 검색 필터링
+    const filteredGroups = useMemo(() => {
+        return groupedOrders.filter(group =>
+            group.memberName.toLowerCase().includes(filterTerm.toLowerCase()) ||
+            group.merchantUid.toLowerCase().includes(filterTerm.toLowerCase()) ||
+            group.items.some(item => item.productName.toLowerCase().includes(filterTerm.toLowerCase()))
         );
-    }, [filterTerm, orders]);
+    }, [filterTerm, groupedOrders]);
 
-    // 수동 주문 추가 (필요 시 사용)
-    const addOrder = async (e) => {
-        e.preventDefault();
-        try {
-            await axios.post('http://localhost:8080/api/shop-orders', newOrder);
-            alert('✅ 수동 주문이 생성되었습니다.');
-            setNewOrder({ memberName: '', productName: '', price: '' });
-            fetchOrders();
-        } catch (error) { alert('로그 생성 실패'); }
-    };
-
-    // 상태 변경 (접수 -> 배송중 -> 완료 등)
+    // 상태 변경 (개별 아이템 ID로 요청)
     const updateStatus = async (id, status) => {
         try {
             await axios.put(`http://localhost:8080/api/shop-orders/${id}/status?status=${status}`);
-            fetchOrders(); // 변경 후 목록 새로고침
+            fetchOrders(); // 새로고침
         } catch (error) { console.error("업데이트 실패:", error); }
     };
 
-    // 주문 삭제
+    // 주문 삭제 (개별 삭제)
     const deleteOrder = async (id) => {
-        if(window.confirm("정말 이 주문 내역을 삭제하시겠습니까? (복구 불가)")) {
+        if(window.confirm("이 상품 주문을 삭제하시겠습니까?")) {
             await axios.delete(`http://localhost:8080/api/shop-orders/${id}`);
             fetchOrders();
         }
+    };
+
+    // 통합 상품명 생성기 (예: "홍찬의 외 2건")
+    const getDisplayName = (items) => {
+        if (items.length === 1) return items[0].productName;
+        return `${items[0].productName} 외 ${items.length - 1}건`;
     };
 
     return (
@@ -75,38 +87,17 @@ function OrderManagePage() {
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                     <div>
                         <h2 className="order-page-title">LOGISTICS <span className="highlight">CONTROL</span></h2>
-                        <p className="order-subtitle">실시간 워크스테이션 배송 로그 및 공정 제어 시스템</p>
+                        <p className="order-subtitle">통합 주문 관리 및 개별 공정 제어 시스템</p>
                     </div>
                     <button onClick={() => navigate('/admin')} style={{background:'none', border:'1px solid #555', color:'#888', padding:'8px 15px', cursor:'pointer'}}>CLOSE</button>
                 </div>
             </header>
 
-            {/* 상단: 주문 수동 생성 및 검색 */}
             <div className="order-top-controls">
-                {/* 수동 주문 추가 폼 */}
-                <section className="order-input-section">
-                    <form onSubmit={addOrder} className="order-form-grid">
-                        <div className="input-field">
-                            <label>CUSTOMER NAME</label>
-                            <input placeholder="구매자명" value={newOrder.memberName} onChange={(e)=>setNewOrder({...newOrder, memberName: e.target.value})} required />
-                        </div>
-                        <div className="input-field">
-                            <label>GEAR TYPE</label>
-                            <input placeholder="제품명" value={newOrder.productName} onChange={(e)=>setNewOrder({...newOrder, productName: e.target.value})} required />
-                        </div>
-                        <div className="input-field">
-                            <label>PRICE</label>
-                            <input type="number" placeholder="가격" value={newOrder.price} onChange={(e)=>setNewOrder({...newOrder, price: e.target.value})} required />
-                        </div>
-                        <button type="submit" className="btn-order-create">MANUAL ADD</button>
-                    </form>
-                </section>
-
-                {/* 검색창 */}
-                <div className="order-search-filter">
+                <div className="order-search-filter" style={{width: '100%'}}>
                     <input
                         type="text"
-                        placeholder="송장번호, 고객명, 품목으로 검색..."
+                        placeholder="송장번호, 고객명, 포함된 제품명으로 검색..."
                         value={filterTerm}
                         onChange={(e) => setFilterTerm(e.target.value)}
                         className="search-input"
@@ -114,54 +105,89 @@ function OrderManagePage() {
                 </div>
             </div>
 
-            {/* 하단: 데이터 리스트 테이블 */}
             <section className="order-list-section">
                 <div className="table-container">
                     <table className="root-order-table">
                         <thead>
                         <tr>
-                            <th>INVOICE ID</th>
+                            <th>INVOICE ID (통합)</th>
                             <th>CUSTOMER</th>
-                            <th>GEAR INFO</th>
-                            <th>PRICE</th>
-                            <th>PROGRESS STATUS</th>
-                            <th>ACTIONS</th>
+                            <th>SUMMARY</th>
+                            <th>TOTAL PRICE</th>
+                            <th>INDIVIDUAL STATUS (개별 관리)</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {filteredOrders.length > 0 ? (
-                            filteredOrders.map(order => (
-                                <tr key={order.id} className={`status-row ${order.status}`}>
-                                    <td className="tracking-code"># {order.merchantUid}</td>
-                                    <td className="client-name">{order.memberName}</td>
-                                    <td>
-                                        {order.productName}
-                                        <div style={{fontSize:'0.8rem', color:'#666'}}>{new Date(order.orderDate).toLocaleString()}</div>
-                                    </td>
-                                    <td style={{color: '#00d4ff', fontWeight:'bold'}}>{Number(order.price).toLocaleString()} ₩</td>
-                                    <td>
-                                        <div className="status-select-box">
-                                            <select
-                                                value={order.status || 'ORDERED'}
-                                                onChange={(e) => updateStatus(order.id, e.target.value)}
-                                                className={`status-select ${order.status}`}
-                                            >
-                                                <option value="ORDERED">접수됨 (ORDERED)</option>
-                                                <option value="MANUFACTURING">제작 중 (MANUFACTURING)</option>
-                                                <option value="QUALITY_CHECK">검수 중 (QC)</option>
-                                                <option value="SHIPPING">배송 중 (SHIPPING)</option>
-                                                <option value="COMPLETED">배송 완료 (COMPLETED)</option>
-                                            </select>
+                        {filteredGroups.length > 0 ? (
+                            filteredGroups.map(group => (
+                                <tr key={group.merchantUid} className="status-row">
+                                    <td className="tracking-code" style={{verticalAlign: 'top'}}>
+                                        # {group.merchantUid}
+                                        <div style={{fontSize:'0.8rem', color:'#666', marginTop:'5px'}}>
+                                            {new Date(group.orderDate).toLocaleString()}
                                         </div>
                                     </td>
+                                    <td className="client-name" style={{verticalAlign: 'top'}}>{group.memberName}</td>
+
+                                    {/* 통합 상품명 */}
+                                    <td style={{verticalAlign: 'top'}}>
+                                        <span style={{color: 'white', fontWeight: 'bold'}}>
+                                            {getDisplayName(group.items)}
+                                        </span>
+                                    </td>
+
+                                    {/* 총 가격 */}
+                                    <td style={{color: '#00d4ff', fontWeight:'bold', verticalAlign: 'top'}}>
+                                        {group.totalPrice.toLocaleString()} ₩
+                                    </td>
+
+                                    {/* ⭐ 개별 상태 관리 영역 */}
                                     <td>
-                                        <button onClick={() => deleteOrder(order.id)} className="btn-drop">삭제</button>
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                                            {group.items.map((item) => (
+                                                <div key={item.id} style={{
+                                                    background: '#1a1a1a',
+                                                    padding: '10px',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #333',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center'
+                                                }}>
+                                                    <span style={{fontSize: '0.9rem', color: '#ccc'}}>
+                                                        • {item.productName}
+                                                    </span>
+
+                                                    <div style={{display: 'flex', gap: '10px'}}>
+                                                        <select
+                                                            value={item.status || 'ORDERED'}
+                                                            onChange={(e) => updateStatus(item.id, e.target.value)}
+                                                            className={`status-select ${item.status}`}
+                                                            style={{padding: '5px', fontSize: '0.8rem', width: 'auto'}}
+                                                        >
+                                                            <option value="ORDERED">접수</option>
+                                                            <option value="MANUFACTURING">제작</option>
+                                                            <option value="QUALITY_CHECK">검수</option>
+                                                            <option value="SHIPPING">배송</option>
+                                                            <option value="COMPLETED">완료</option>
+                                                        </select>
+                                                        <button
+                                                            onClick={() => deleteOrder(item.id)}
+                                                            className="btn-drop"
+                                                            style={{padding: '5px 8px'}}
+                                                        >
+                                                            X
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="6" className="empty-msg">일치하는 로그 데이터가 없습니다.</td>
+                                <td colSpan="5" className="empty-msg">주문 내역이 없습니다.</td>
                             </tr>
                         )}
                         </tbody>
