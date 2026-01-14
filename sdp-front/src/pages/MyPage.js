@@ -11,8 +11,10 @@ function MyPage() {
     const [rawOrderList, setRawOrderList] = useState([]);
     const [cartCount, setCartCount] = useState(0);
 
-    // 어떤 주문이 열려있는지 저장하는 상태 (초기값: null)
     const [expandedOrderId, setExpandedOrderId] = useState(null);
+
+    // 로그인 시 저장해둔 진짜 영어 아이디
+    const realMemberId = localStorage.getItem('memberId');
 
     useEffect(() => {
         const storedName = localStorage.getItem('memberName');
@@ -34,18 +36,22 @@ function MyPage() {
         });
 
         if (storedName !== '관리자') {
-            axios.get(`http://localhost:8080/api/shop-orders?name=${storedName}`)
-                .then(res => setRawOrderList(res.data))
-                .catch(err => console.error("주문 내역 로드 실패", err));
+            // ⭐ [핵심 수정] 이제 이름(storedName)이 아니라 아이디(realMemberId)로 주문을 찾습니다.
+            // 이렇게 하면 탈퇴 후 재가입해도 예전 주문이 딸려오지 않습니다.
+            if (realMemberId) {
+                axios.get(`http://localhost:8080/api/shop-orders?memberId=${realMemberId}`)
+                    .then(res => setRawOrderList(res.data))
+                    .catch(err => console.error("주문 내역 로드 실패", err));
+            }
 
             axios.get(`http://localhost:8080/api/cart?memberName=${storedName}`)
                 .then(res => setCartCount(res.data.length))
                 .catch(err => console.error("장바구니 로드 실패", err));
         }
 
-    }, [navigate]);
+    }, [navigate, realMemberId]); // realMemberId가 바뀔 때도 실행되도록 의존성 추가
 
-    // 그룹화 로직
+    // --- (아래 로직은 그대로 유지) ---
     const groupedOrders = useMemo(() => {
         const groups = {};
         rawOrderList.forEach(order => {
@@ -71,7 +77,6 @@ function MyPage() {
         return `${group.repProductName} 외 ${count - 1}건`;
     };
 
-    // 클릭 시 펼치기/접기 토글 함수
     const toggleOrder = (uid) => {
         if (expandedOrderId === uid) {
             setExpandedOrderId(null);
@@ -80,7 +85,6 @@ function MyPage() {
         }
     };
 
-    // 상태 한글 변환 헬퍼
     const getStatusText = (status) => {
         switch (status) {
             case 'ORDERED': return '주문 접수';
@@ -92,25 +96,42 @@ function MyPage() {
         }
     };
 
-    // 비밀번호 변경 핸들러 (새로 만든 페이지로 이동)
-    const handlePasswordChange = () => {
-        if(window.confirm("비밀번호 변경 페이지로 이동하시겠습니까?")) {
-            navigate('/members/change-password');
+    const handleInfoChange = () => {
+        if(window.confirm("개인정보(비밀번호 등)를 변경하시겠습니까?")) {
+            navigate('/members/edit');
         }
     };
 
-    // 회원 탈퇴 핸들러
+    // [회원 탈퇴] 핸들러
     const handleWithdrawal = async () => {
-        if (window.confirm("정말로 탈퇴하시겠습니까? \n탈퇴 시 모든 주문 내역과 장바구니 정보가 삭제됩니다.")) {
-            try {
-                await axios.delete(`http://localhost:8080/api/members/${userInfo.name}`);
-                alert("정상적으로 탈퇴되었습니다.");
-                localStorage.clear();
-                navigate('/');
-            } catch (err) {
-                console.error("탈퇴 처리 실패:", err);
-                alert("탈퇴 처리에 실패했습니다. (서버 연결 확인 필요)");
-            }
+        if (!window.confirm("정말로 탈퇴하시겠습니까? \n탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.")) {
+            return;
+        }
+
+        const password = window.prompt("본인 확인을 위해 비밀번호를 입력해주세요.");
+        if (!password) {
+            return;
+        }
+
+        try {
+            await axios.post(`http://localhost:8080/api/members/withdraw`, {
+                memberId: realMemberId,
+                currentPassword: password,
+                type: 'individual'
+            });
+
+            alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
+
+            // 1. 로컬 스토리지 비우기 (로그아웃)
+            localStorage.clear();
+
+            // 2. 메인으로 이동하며 새로고침
+            window.location.href = '/';
+
+        } catch (err) {
+            console.error("탈퇴 처리 실패:", err);
+            const msg = err.response?.data || "탈퇴 처리에 실패했습니다.";
+            alert(msg);
         }
     };
 
@@ -124,7 +145,6 @@ function MyPage() {
                 MY PAGE
             </h1>
 
-            {/* 프로필 카드 */}
             <div className="profile-card" style={{ display: 'flex', gap: '30px', alignItems: 'center', background: '#111', padding: '30px', borderRadius: '12px' }}>
                 <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: isAdmin ? '#3B82F6' : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
                     {isAdmin ? '🛡️' : '👤'}
@@ -150,7 +170,6 @@ function MyPage() {
                     </div>
                 ) : (
                     <div>
-                        {/* 장바구니 상태 */}
                         <div style={cartStatusStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
@@ -167,15 +186,12 @@ function MyPage() {
                             </Link>
                         </div>
 
-                        {/* 주문 내역 리스트 */}
                         <h3>📦 최근 주문 내역 ({groupedOrders.length}건)</h3>
                         <div style={{ marginTop: '20px' }}>
                             {groupedOrders.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                     {groupedOrders.map((group) => (
                                         <div key={group.merchantUid} style={{ background: '#1a1a1a', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>
-
-                                            {/* 1. 메인 카드 (클릭 이벤트 분리 적용) */}
                                             <div
                                                 style={{
                                                     padding: '20px',
@@ -185,36 +201,26 @@ function MyPage() {
                                                     borderLeft: '4px solid #00d4ff',
                                                     background: expandedOrderId === group.merchantUid ? '#222' : '#1a1a1a',
                                                     transition: '0.3s',
-                                                    cursor: 'default' // ⭐ 기본 커서 (드래그 편의성)
+                                                    cursor: 'default'
                                                 }}
                                             >
                                                 <div>
                                                     <h4 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'white', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                         {getDisplayName(group)}
-
-                                                        {/* ⭐ 여기를 눌러야만 펼쳐짐 */}
                                                         <span
                                                             onClick={() => toggleOrder(group.merchantUid)}
                                                             style={{
-                                                                fontSize:'0.8rem',
-                                                                color:'#888',
-                                                                cursor: 'pointer', // 손가락 모양 커서
-                                                                border: '1px solid #555',
-                                                                padding: '2px 8px',
-                                                                borderRadius: '4px',
-                                                                background: '#000',
-                                                                userSelect: 'none' // 버튼 텍스트 선택 방지
+                                                                fontSize:'0.8rem', color:'#888', cursor: 'pointer',
+                                                                border: '1px solid #555', padding: '2px 8px',
+                                                                borderRadius: '4px', background: '#000', userSelect: 'none'
                                                             }}
                                                         >
                                                             {expandedOrderId === group.merchantUid ? '▲ 접기' : '▼ 상세보기'}
                                                         </span>
                                                     </h4>
-
-                                                    {/* ⭐ 주문번호 드래그 복사 가능하도록 설정 */}
                                                     <p style={{ color: '#888', margin: 0, fontSize: '0.9rem', userSelect: 'text', cursor: 'text' }}>
                                                         주문번호: <span style={{color: '#00d4ff'}}>{group.merchantUid}</span>
                                                     </p>
-
                                                     <p style={{ color: '#666', margin: 0, fontSize: '0.8rem' }}>
                                                         {group.orderDate ? new Date(group.orderDate).toLocaleString() : '-'}
                                                     </p>
@@ -229,14 +235,11 @@ function MyPage() {
                                                 </div>
                                             </div>
 
-                                            {/* 2. 상세 내역 (토글됨) */}
                                             {expandedOrderId === group.merchantUid && (
                                                 <div style={{ background: '#000', padding: '15px 20px', borderTop: '1px solid #333', animation: 'slideDown 0.3s ease-out' }}>
                                                     {group.items.map((item, idx) => (
                                                         <div key={item.id} style={{
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            padding: '12px 0',
+                                                            display: 'flex', justifyContent: 'space-between', padding: '12px 0',
                                                             borderBottom: idx !== group.items.length - 1 ? '1px solid #222' : 'none',
                                                             color: '#ccc'
                                                         }}>
@@ -271,17 +274,10 @@ function MyPage() {
 
                         <h3 style={{ marginTop: '40px' }}>🔐 개인정보 관리</h3>
                         <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
-                            {/* ⭐ 버튼 클릭 이벤트 연결 완료 */}
-                            <button
-                                style={outlineButtonStyle}
-                                onClick={handlePasswordChange}
-                            >
+                            <button style={outlineButtonStyle} onClick={handleInfoChange}>
                                 개인정보 변경
                             </button>
-                            <button
-                                style={outlineButtonStyle}
-                                onClick={handleWithdrawal}
-                            >
+                            <button style={outlineButtonStyle} onClick={handleWithdrawal}>
                                 회원 탈퇴
                             </button>
                         </div>
@@ -292,7 +288,6 @@ function MyPage() {
     );
 }
 
-// 스타일
 const adminButtonStyle = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
     background: '#1e293b', color: '#3B82F6', textDecoration: 'none', borderRadius: '8px',

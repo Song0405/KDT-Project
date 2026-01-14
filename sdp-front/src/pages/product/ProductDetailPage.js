@@ -12,7 +12,9 @@ function ProductDetailPage() {
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
 
+    // ⭐ [수정됨] memberId 추가! (이게 있어야 내 주문으로 인식됨)
     const userInfo = {
+        memberId: localStorage.getItem('memberId'),
         name: localStorage.getItem('memberName') || 'Unknown Agent',
         email: localStorage.getItem('memberEmail') || 'guest@rootstation.com',
         tel: localStorage.getItem('memberTel') || '010-0000-0000'
@@ -27,9 +29,8 @@ function ProductDetailPage() {
             });
     }, [id, navigate]);
 
-    // ⭐ [추가] 장바구니 담기 기능
+    // 장바구니 담기 기능
     const addToCart = async () => {
-        // 1. 로그인 체크 (Unknown Agent면 로그인 유도)
         if (!userInfo.name || userInfo.name === 'Unknown Agent') {
             alert('로그인이 필요한 기능입니다.');
             navigate('/members/login');
@@ -37,7 +38,6 @@ function ProductDetailPage() {
         }
 
         try {
-            // 2. 서버로 전송
             await axios.post('http://localhost:8080/api/cart', {
                 memberName: userInfo.name,
                 productId: product.id,
@@ -46,7 +46,6 @@ function ProductDetailPage() {
                 imageUrl: product.imageUrl ? (product.imageUrl.startsWith('http') ? product.imageUrl : `${IMAGE_SERVER_URL}/${product.imageUrl}`) : ''
             });
 
-            // 3. 성공 시 이동 확인
             if(window.confirm('장바구니에 아이템이 추가되었습니다.\n장바구니로 이동하시겠습니까?')) {
                 navigate('/cart');
             }
@@ -70,7 +69,6 @@ function ProductDetailPage() {
     return (
         <div className="detail-page-wrapper">
             <div className="detail-control-bar">
-                {/* 뒤로가기 버튼 (현재 잘 작동하는 코드 유지) */}
                 <button className="btn-back-glow" onClick={() => navigate('/products')}>
                     <span className="arrow">←</span> BACK TO LIBRARY
                 </button>
@@ -100,12 +98,11 @@ function ProductDetailPage() {
                             <p>{product.description}</p>
                         </div>
 
-                        {/* ⭐ 버튼 영역 수정 */}
                         <div className="action-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            {/* 1. 결제 버튼 (기존 유지) */}
+                            {/* 1. 결제 버튼 (userInfo에 memberId가 담겨서 넘어감) */}
                             <PaymentButton productInfo={product} userInfo={userInfo} />
 
-                            {/* 2. [신규] 장바구니 담기 버튼 (기존 ADD TO SYSTEM 대체) */}
+                            {/* 2. 장바구니 버튼 */}
                             <button
                                 className="btn-cart-action"
                                 onClick={addToCart}
@@ -115,7 +112,6 @@ function ProductDetailPage() {
                         </div>
                     </div>
 
-                    {/* AI 추천 리포트 섹션 (기존 위치 유지) */}
                     {product.recommendations && product.recommendations.length > 0 && (
                         <div className="ai-analysis-box">
                             <div className="ai-header">

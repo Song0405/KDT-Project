@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './CartPage.css'; // 아래 CSS 참고
+import './CartPage.css';
 
 function CartPage() {
     const navigate = useNavigate();
     const [cartItems, setCartItems] = useState([]);
-    const [selectedIds, setSelectedIds] = useState([]); // 선택된 아이템 ID들
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const userInfo = {
+        // ⭐ [추가됨] 주문 시 '누가 주문했는지(ID)'를 알아야 합니다.
+        memberId: localStorage.getItem('memberId'),
         name: localStorage.getItem('memberName'),
         email: localStorage.getItem('memberEmail') || 'test@test.com'
     };
@@ -22,18 +24,15 @@ function CartPage() {
         fetchCart();
     }, []);
 
-    // 장바구니 목록 불러오기
     const fetchCart = () => {
         axios.get(`http://localhost:8080/api/cart?memberName=${userInfo.name}`)
             .then(res => {
                 setCartItems(res.data);
-                // 처음엔 전체 선택 상태로 두기 (편의상)
                 setSelectedIds(res.data.map(item => item.id));
             })
             .catch(err => console.error(err));
     };
 
-    // 체크박스 개별 선택
     const handleCheck = (id) => {
         if (selectedIds.includes(id)) {
             setSelectedIds(selectedIds.filter(itemId => itemId !== id));
@@ -42,7 +41,6 @@ function CartPage() {
         }
     };
 
-    // 전체 선택/해제
     const handleCheckAll = (checked) => {
         if (checked) {
             setSelectedIds(cartItems.map(item => item.id));
@@ -51,7 +49,6 @@ function CartPage() {
         }
     };
 
-    // 삭제 기능
     const handleDelete = (id) => {
         if(window.confirm("삭제하시겠습니까?")) {
             axios.delete(`http://localhost:8080/api/cart/${id}`)
@@ -59,14 +56,12 @@ function CartPage() {
         }
     };
 
-    // ⭐ 선택된 상품들 정보 계산
     const selectedItems = cartItems.filter(item => selectedIds.includes(item.id));
     const totalPrice = selectedItems.reduce((acc, item) => acc + item.price, 0);
     const orderName = selectedItems.length > 1
         ? `${selectedItems[0].productName} 외 ${selectedItems.length - 1}건`
         : (selectedItems[0] ? selectedItems[0].productName : "");
 
-    // 💳 결제 요청 함수
     const requestPay = () => {
         if (selectedItems.length === 0) {
             alert("결제할 상품을 선택해주세요.");
@@ -74,7 +69,7 @@ function CartPage() {
         }
 
         const { IMP } = window;
-        IMP.init('imp44181766'); // 🔴 본인 가맹점 코드 입력 필수!
+        IMP.init('imp44181766');
 
         const data = {
             pg: 'kakaopay',
@@ -88,8 +83,9 @@ function CartPage() {
 
         IMP.request_pay(data, async (response) => {
             if (response.success) {
-                // 결제 성공 -> 서버에 주문 내역 저장 (일괄 저장)
+                // ⭐ [핵심 수정] 서버로 보낼 때 memberId를 꼭 포함해야 합니다!
                 const orderDataList = selectedItems.map(item => ({
+                    memberId: userInfo.memberId, // 👈 여기가 핵심입니다.
                     memberName: userInfo.name,
                     productName: item.productName,
                     price: item.price,
@@ -153,7 +149,6 @@ function CartPage() {
                     )}
                 </div>
 
-                {/* 우측 결제 요약 박스 */}
                 <div className="cart-summary">
                     <h3>PAYMENT INFO</h3>
                     <div className="summary-row">

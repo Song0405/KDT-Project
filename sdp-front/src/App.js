@@ -15,6 +15,7 @@ import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
 import './index.css';
 import CartPage from "./pages/CartPage";
+import ChangeInfoPage from './pages/ChangeInfoPage';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -139,6 +140,7 @@ function App() {
                     <Route path="/products" element={<ProductListPage />} />
                     <Route path="/products/:id" element={<ProductDetailPage />} />
                     <Route path="/cart" element={<CartPage />} />
+                    <Route path="/members/edit" element={<ChangeInfoPage />} />
                     <Route path="/admin" element={
                         <ProtectedAdminRoute>
                             <AdminPage />

@@ -6,47 +6,41 @@ const PaymentButton = ({ productInfo, userInfo }) => {
     const navigate = useNavigate();
 
     const requestPay = () => {
-        // 1. 포트원 라이브러리 로드 확인
         if (!window.IMP) return;
         const { IMP } = window;
 
-        // ⭐ [중요] 본인의 가맹점 식별코드로 교체하세요!
+        // 본인의 가맹점 식별코드로 되어있는지 확인
         IMP.init('imp44181766');
 
-        // 2. 결제 요청 데이터 설정
         const data = {
-            pg: 'kakaopay',             // 카카오페이 설정
-            pay_method: 'card',         // 결제 수단
-            merchant_uid: `mid_${new Date().getTime()}`, // 주문번호 생성
-            name: productInfo.name,     // 제품명
-            amount: productInfo.price,  // 가격
+            pg: 'kakaopay',
+            pay_method: 'card',
+            merchant_uid: `mid_${new Date().getTime()}`,
+            name: productInfo.name,
+            amount: productInfo.price,
             buyer_email: userInfo.email,
             buyer_name: userInfo.name,
             buyer_tel: '010-0000-0000',
         };
 
-        // 3. 결제 창 호출
         IMP.request_pay(data, callback);
     };
 
-    // 4. 결제 결과 콜백 함수
     const callback = async (response) => {
         const { success, error_msg, merchant_uid } = response;
 
         if (success) {
             try {
-                // ⭐ 5. 백엔드(Spring Boot)에 주문 저장 요청
-                // 이메일 대신 'memberName'을 보냅니다.
+                // ⭐ [핵심 수정] memberId를 같이 보내야 내 주문내역에 뜹니다!
                 await axios.post('http://localhost:8080/api/shop-orders', {
-                    memberName: userInfo.name, // 구매자 이름
+                    memberId: userInfo.memberId, // 👈 여기가 추가된 부분입니다.
+                    memberName: userInfo.name,
                     productName: productInfo.name,
                     price: productInfo.price,
                     merchantUid: merchant_uid
                 });
 
                 alert('결제 성공! 주문 내역이 저장되었습니다.');
-
-                // 마이페이지로 이동
                 navigate('/members/mypage');
             } catch (err) {
                 console.error(err);
@@ -60,7 +54,7 @@ const PaymentButton = ({ productInfo, userInfo }) => {
     return (
         <button
             onClick={requestPay}
-            className="btn-buy-now" // 기존 디자인 클래스 유지
+            className="btn-buy-now"
             style={{
                 backgroundColor: '#00d4ff',
                 color: 'white',
