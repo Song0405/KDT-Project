@@ -4,7 +4,7 @@ import './Order.css';
 
 function OrderSearchPage() {
     const [searchInput, setSearchInput] = useState('');
-    const [orderList, setOrderList] = useState([]); // 리스트로 변경
+    const [orderResult, setOrderResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -17,15 +17,15 @@ function OrderSearchPage() {
 
         setLoading(true);
         setError('');
-        setOrderList([]);
+        setOrderResult(null);
 
         try {
-            // 이제 배열([])이 반환됩니다.
+            // ⭐ [수정 1] 주소를 백엔드 설정(/api/shop-orders/track)에 맞춤
             const response = await axios.get(`http://localhost:8080/api/shop-orders/track?code=${searchInput}`);
-            setOrderList(response.data);
+            setOrderResult(response.data);
         } catch (err) {
             console.error("조회 실패:", err);
-            setError("해당 번호의 주문 내역을 찾을 수 없습니다.");
+            setError("해당 번호의 주문 내역을 찾을 수 없습니다. (코드 확인 필요)");
         } finally {
             setLoading(false);
         }
@@ -44,11 +44,11 @@ function OrderSearchPage() {
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'ORDERED': return '주문 접수됨';
-            case 'MANUFACTURING': return '제작/조립 중';
-            case 'QUALITY_CHECK': return '최종 검수 중';
-            case 'SHIPPING': return '배송 중';
-            case 'COMPLETED': return '배송 완료';
+            case 'ORDERED': return '주문 접수됨 (Processing)';
+            case 'MANUFACTURING': return '제작/조립 중 (Manufacturing)';
+            case 'QUALITY_CHECK': return '최종 검수 중 (Quality Check)';
+            case 'SHIPPING': return '배송 중 (Shipping)';
+            case 'COMPLETED': return '배송 완료 (Completed)';
             default: return '상태 확인 불가';
         }
     };
@@ -64,13 +64,18 @@ function OrderSearchPage() {
                 <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px' }}>
                     <input
                         type="text"
-                        placeholder="예: cart_1768355..."
+                        placeholder="예: mid_1768..."
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         style={{ flex: 1, padding: '15px', background: '#000', border: '1px solid #333', color: 'white', borderRadius: '4px' }}
                     />
-                    <button type="submit" className="btn-order-create" style={{ width: '120px' }} disabled={loading}>
-                        {loading ? '...' : '조회하기'}
+                    <button
+                        type="submit"
+                        className="btn-order-create"
+                        style={{ width: '120px' }}
+                        disabled={loading}
+                    >
+                        {loading ? '조회 중...' : '조회하기'}
                     </button>
                 </form>
             </div>
@@ -81,43 +86,34 @@ function OrderSearchPage() {
                 </div>
             )}
 
-            {/* 조회 결과 리스트 */}
-            {orderList.length > 0 && (
-                <div style={{ marginTop: '40px', width: '100%', maxWidth: '600px', animation: 'fadeIn 0.5s' }}>
-                    <div style={{background: '#111', padding: '20px', borderRadius: '12px 12px 0 0', borderBottom:'1px solid #333', display:'flex', justifyContent:'space-between'}}>
-                        <h3 style={{margin:0, color:'#fff'}}>LOG SEARCH RESULT</h3>
-                        <span style={{color:'#bb86fc', fontWeight:'bold'}}>{orderList[0].merchantUid}</span>
+            {orderResult && (
+                <div className="ai-analysis-box" style={{ marginTop: '40px', width: '100%', maxWidth: '600px', animation: 'fadeIn 0.5s', background: '#111', padding: '30px', borderRadius: '12px', border: '1px solid #333' }}>
+                    <div className="ai-header" style={{justifyContent: 'space-between', display:'flex', marginBottom:'20px'}}>
+                        <h3 style={{fontSize: '1.2rem', color:'#fff', margin:0}}>LOG SEARCH RESULT</h3>
+                        {/* ⭐ [수정 2] trackingCode -> merchantUid로 변경 */}
+                        <span className="tracking-code" style={{color:'#bb86fc', fontWeight:'bold'}}>{orderResult.merchantUid}</span>
                     </div>
 
-                    {/* 상품별로 카드 생성 */}
-                    {orderList.map((order, index) => (
-                        <div key={order.id} className="ai-analysis-box" style={{
-                            background: '#0a0a0a',
-                            marginTop: '0',
-                            marginBottom: '2px',
-                            borderRadius: index === orderList.length -1 ? '0 0 12px 12px' : '0',
-                            borderTop: 'none'
-                        }}>
-                            <div style={{ marginBottom: '15px' }}>
-                                <h2 style={{ fontSize: '1.4rem', margin: '0 0 5px 0', color: '#fff' }}>{order.productName}</h2>
-                                <p style={{ color: '#666', fontSize:'0.9rem', margin:0 }}>주문 고객: {order.memberName}</p>
-                            </div>
+                    <div style={{ marginBottom: '20px' }}>
+                        <h2 style={{ fontSize: '2rem', margin: '10px 0', color: '#fff' }}>{orderResult.productName}</h2>
+                        {/* ⭐ [수정 3] clientName -> memberName으로 변경 */}
+                        <p style={{ color: '#888' }}>주문 고객: {orderResult.memberName}</p>
+                        <p style={{ color: '#888' }}>주문 일자: {new Date(orderResult.orderDate).toLocaleDateString()}</p>
+                    </div>
 
-                            <div style={{ background: '#222', height: '8px', borderRadius: '4px', overflow: 'hidden', margin: '15px 0' }}>
-                                <div style={{
-                                    width: `${getProgress(order.status)}%`,
-                                    height: '100%',
-                                    background: order.status === 'COMPLETED' ? '#00d4ff' : '#bb86fc',
-                                    transition: 'width 1s ease-in-out',
-                                    boxShadow: `0 0 10px ${order.status === 'COMPLETED' ? '#00d4ff' : '#bb86fc'}`
-                                }}></div>
-                            </div>
+                    <div style={{ background: '#222', height: '10px', borderRadius: '5px', overflow: 'hidden', margin: '20px 0' }}>
+                        <div style={{
+                            width: `${getProgress(orderResult.status)}%`,
+                            height: '100%',
+                            background: '#00d4ff',
+                            transition: 'width 1s ease-in-out',
+                            boxShadow: '0 0 10px #00d4ff'
+                        }}></div>
+                    </div>
 
-                            <div style={{ textAlign: 'right', color: order.status === 'COMPLETED' ? '#00d4ff' : '#bb86fc', fontWeight: 'bold', fontSize: '1rem' }}>
-                                {getStatusText(order.status)}
-                            </div>
-                        </div>
-                    ))}
+                    <div style={{ textAlign: 'right', color: '#00d4ff', fontWeight: 'bold', fontSize: '1.5rem' }}>
+                        {getStatusText(orderResult.status)}
+                    </div>
                 </div>
             )}
         </div>

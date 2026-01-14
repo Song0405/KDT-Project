@@ -29,10 +29,18 @@ public class ProductService {
     private final String uploadPath = "C:/sdp_uploads/";
 
     @Transactional(readOnly = true)
-    public List<ProductDto> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public List<ProductDto> getProductsByUsage(String usage) {
+        List<Product> products;
+
+        // "ALL"이거나 비어있으면 -> 전체 조회
+        if (usage == null || usage.equals("ALL")) {
+            products = productRepository.findAll();
+        } else {
+            // 아니면 -> 해당 용도만 조회 (GAMING, OFFICE 등)
+            products = productRepository.findByUsageType(usage);
+        }
+
+        return products.stream().map(ProductDto::from).toList();
     }
     public List<ProductDto> searchProducts(String keyword) {
         // 1. 아까 만든 리포지토리 메서드로 검색 결과를 가져옴

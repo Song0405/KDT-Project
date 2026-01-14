@@ -58,31 +58,12 @@ public class ShopOrderController {
         shopOrderRepository.deleteById(id);
     }
 
-
-    // ⭐ 6. [수정됨] 송장번호로 조회 (장바구니 결제 대응)
-    // ⭐ [수정됨] 송장번호로 조회 (List로 반환하여 상품별 상태 확인 가능하게 함)
+    // ⭐ 6. [추가] 송장번호로 조회 (비회원/회원 공용)
     @GetMapping("/track")
-    public org.springframework.http.ResponseEntity<List<ShopOrder>> trackOrder(@RequestParam String code) {
-        List<ShopOrder> orders = shopOrderRepository.findByMerchantUid(code);
-
-        if (orders.isEmpty()) {
-            return org.springframework.http.ResponseEntity.notFound().build();
-        }
-
-        // 리스트 전체를 반환
-        return org.springframework.http.ResponseEntity.ok(orders);
-    }
-    @PostMapping("/batch")
-    public String saveBatchOrders(@RequestBody List<Map<String, Object>> listData) {
-        for (Map<String, Object> data : listData) {
-            ShopOrder order = new ShopOrder();
-            order.setMemberName((String) data.get("memberName"));
-            order.setProductName((String) data.get("productName"));
-            order.setPrice((Integer) data.get("price"));
-            order.setMerchantUid((String) data.get("merchantUid"));
-
-            shopOrderRepository.save(order);
-        }
-        return "일괄 주문 저장 완료";
+    public org.springframework.http.ResponseEntity<ShopOrder> trackOrder(@RequestParam String code) {
+        // DB에서 코드(merchantUid)로 찾아서 있으면 OK, 없으면 404 에러 리턴
+        return shopOrderRepository.findByMerchantUid(code)
+                .map(order -> org.springframework.http.ResponseEntity.ok(order))
+                .orElse(org.springframework.http.ResponseEntity.notFound().build());
     }
 }
