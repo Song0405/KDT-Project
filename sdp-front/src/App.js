@@ -13,7 +13,9 @@ import FindPage from './pages/FindPage';
 import NoticePage from './pages/NoticePage';
 import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
-import ContactPage from './pages/ContactPage'; // 문의하기 페이지 추가
+import CartPage from "./pages/CartPage";
+import ContactPage from './pages/ContactPage'; // ✨ [1] 문의하기 페이지 import 추가
+
 import './index.css';
 
 function App() {
@@ -112,13 +114,19 @@ function App() {
                                 <h3 style={styles.columnTitle}>SHOPPING</h3>
                                 <Link style={styles.menuItem} to="/products" onClick={toggleMenu}>제품 목록</Link>
                                 <Link style={styles.menuItem} to="/track" onClick={toggleMenu}>주문/배송 조회</Link>
+                                <Link style={styles.menuItem} to="/cart" onClick={toggleMenu}>
+                                    장바구니 (CART)
+                                </Link>
                             </div>
                             <div style={styles.menuColumn}>
                                 <h3 style={styles.columnTitle}>SUPPORT</h3>
                                 <Link style={styles.menuItem} to="/notices" onClick={toggleMenu}>공지사항</Link>
-                                <Link style={styles.menuItem} to="/contact" onClick={toggleMenu}>문의하기</Link>
+
+                                {/* ✨ [2] 여기에 문의하기 버튼 추가했습니다! */}
+                                <Link style={styles.menuItem} to="/contact" onClick={toggleMenu}>1:1 문의하기</Link>
+
                                 {/* 관리자 모드 링크 */}
-                                <Link style={styles.menuItem} to="/admin" onClick={toggleMenu} style={{color: '#bb86fc'}}>관리자 모드</Link>
+                                <Link style={{...styles.menuItem, color: '#bb86fc'}} to="/admin" onClick={toggleMenu}>관리자 모드</Link>
                             </div>
                         </div>
                     </div>
@@ -133,11 +141,14 @@ function App() {
                     <Route path="/members/find" element={<FindPage />} />
                     <Route path="/members/mypage" element={<MyPage />} />
                     <Route path="/notices" element={<NoticePage />} />
+
+                    {/* ✨ [3] 문의하기 페이지 라우터 연결 완료! */}
+                    <Route path="/contact" element={<ContactPage />} />
+
                     <Route path="/track" element={<OrderSearchPage />} />
                     <Route path="/products" element={<ProductListPage />} />
                     <Route path="/products/:id" element={<ProductDetailPage />} />
-                    <Route path="/contact" element={<ContactPage />} />
-
+                    <Route path="/cart" element={<CartPage />} />
                     <Route path="/admin" element={
                         <ProtectedAdminRoute>
                             <AdminPage />
