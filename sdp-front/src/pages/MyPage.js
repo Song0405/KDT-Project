@@ -11,7 +11,7 @@ function MyPage() {
     const [rawOrderList, setRawOrderList] = useState([]);
     const [cartCount, setCartCount] = useState(0);
 
-    // ⭐ [추가] 어떤 주문이 열려있는지 저장하는 상태 (초기값: null)
+    // 어떤 주문이 열려있는지 저장하는 상태 (초기값: null)
     const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     useEffect(() => {
@@ -45,7 +45,7 @@ function MyPage() {
 
     }, [navigate]);
 
-    // 그룹화 로직 (기존 동일)
+    // 그룹화 로직
     const groupedOrders = useMemo(() => {
         const groups = {};
         rawOrderList.forEach(order => {
@@ -71,12 +71,12 @@ function MyPage() {
         return `${group.repProductName} 외 ${count - 1}건`;
     };
 
-    // ⭐ [추가] 클릭 시 펼치기/접기 토글 함수
+    // 클릭 시 펼치기/접기 토글 함수
     const toggleOrder = (uid) => {
         if (expandedOrderId === uid) {
-            setExpandedOrderId(null); // 이미 열려있으면 닫기
+            setExpandedOrderId(null);
         } else {
-            setExpandedOrderId(uid); // 아니면 열기
+            setExpandedOrderId(uid);
         }
     };
 
@@ -89,6 +89,28 @@ function MyPage() {
             case 'SHIPPING': return '배송 중';
             case 'COMPLETED': return '배송 완료';
             default: return '접수됨';
+        }
+    };
+
+    // 비밀번호 변경 핸들러 (새로 만든 페이지로 이동)
+    const handlePasswordChange = () => {
+        if(window.confirm("비밀번호 변경 페이지로 이동하시겠습니까?")) {
+            navigate('/members/change-password');
+        }
+    };
+
+    // 회원 탈퇴 핸들러
+    const handleWithdrawal = async () => {
+        if (window.confirm("정말로 탈퇴하시겠습니까? \n탈퇴 시 모든 주문 내역과 장바구니 정보가 삭제됩니다.")) {
+            try {
+                await axios.delete(`http://localhost:8080/api/members/${userInfo.name}`);
+                alert("정상적으로 탈퇴되었습니다.");
+                localStorage.clear();
+                navigate('/');
+            } catch (err) {
+                console.error("탈퇴 처리 실패:", err);
+                alert("탈퇴 처리에 실패했습니다. (서버 연결 확인 필요)");
+            }
         }
     };
 
@@ -153,28 +175,46 @@ function MyPage() {
                                     {groupedOrders.map((group) => (
                                         <div key={group.merchantUid} style={{ background: '#1a1a1a', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>
 
-                                            {/* 1. 메인 카드 (클릭 가능 영역) */}
+                                            {/* 1. 메인 카드 (클릭 이벤트 분리 적용) */}
                                             <div
-                                                onClick={() => toggleOrder(group.merchantUid)}
                                                 style={{
                                                     padding: '20px',
                                                     display: 'flex',
                                                     justifyContent: 'space-between',
                                                     alignItems: 'center',
-                                                    cursor: 'pointer',
                                                     borderLeft: '4px solid #00d4ff',
                                                     background: expandedOrderId === group.merchantUid ? '#222' : '#1a1a1a',
-                                                    transition: '0.3s'
+                                                    transition: '0.3s',
+                                                    cursor: 'default' // ⭐ 기본 커서 (드래그 편의성)
                                                 }}
                                             >
                                                 <div>
                                                     <h4 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'white', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                         {getDisplayName(group)}
-                                                        <span style={{fontSize:'0.8rem', color:'#666'}}>
+
+                                                        {/* ⭐ 여기를 눌러야만 펼쳐짐 */}
+                                                        <span
+                                                            onClick={() => toggleOrder(group.merchantUid)}
+                                                            style={{
+                                                                fontSize:'0.8rem',
+                                                                color:'#888',
+                                                                cursor: 'pointer', // 손가락 모양 커서
+                                                                border: '1px solid #555',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '4px',
+                                                                background: '#000',
+                                                                userSelect: 'none' // 버튼 텍스트 선택 방지
+                                                            }}
+                                                        >
                                                             {expandedOrderId === group.merchantUid ? '▲ 접기' : '▼ 상세보기'}
                                                         </span>
                                                     </h4>
-                                                    <p style={{ color: '#888', margin: 0, fontSize: '0.9rem' }}>주문번호: {group.merchantUid}</p>
+
+                                                    {/* ⭐ 주문번호 드래그 복사 가능하도록 설정 */}
+                                                    <p style={{ color: '#888', margin: 0, fontSize: '0.9rem', userSelect: 'text', cursor: 'text' }}>
+                                                        주문번호: <span style={{color: '#00d4ff'}}>{group.merchantUid}</span>
+                                                    </p>
+
                                                     <p style={{ color: '#666', margin: 0, fontSize: '0.8rem' }}>
                                                         {group.orderDate ? new Date(group.orderDate).toLocaleString() : '-'}
                                                     </p>
@@ -189,7 +229,7 @@ function MyPage() {
                                                 </div>
                                             </div>
 
-                                            {/* ⭐ 2. 상세 내역 (토글됨) */}
+                                            {/* 2. 상세 내역 (토글됨) */}
                                             {expandedOrderId === group.merchantUid && (
                                                 <div style={{ background: '#000', padding: '15px 20px', borderTop: '1px solid #333', animation: 'slideDown 0.3s ease-out' }}>
                                                     {group.items.map((item, idx) => (
@@ -231,8 +271,19 @@ function MyPage() {
 
                         <h3 style={{ marginTop: '40px' }}>🔐 개인정보 관리</h3>
                         <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
-                            <button style={outlineButtonStyle}>비밀번호 변경</button>
-                            <button style={outlineButtonStyle}>회원 탈퇴</button>
+                            {/* ⭐ 버튼 클릭 이벤트 연결 완료 */}
+                            <button
+                                style={outlineButtonStyle}
+                                onClick={handlePasswordChange}
+                            >
+                                개인정보 변경
+                            </button>
+                            <button
+                                style={outlineButtonStyle}
+                                onClick={handleWithdrawal}
+                            >
+                                회원 탈퇴
+                            </button>
                         </div>
                     </div>
                 )}
