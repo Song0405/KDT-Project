@@ -1,0 +1,157 @@
+/* --- ROOT STATION NOTICE PAGE THEME --- */
+
+.notice-page-wrapper {
+    background-color: #050505;
+    min-height: calc(100vh - 70px);
+    padding: 80px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.notice-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.notice-page-title {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    background: linear-gradient(180deg, #ffffff 0%, #444444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 15px;
+}
+
+.notice-page-title .highlight {
+    color: #00d4ff;
+    -webkit-text-fill-color: #00d4ff;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.notice-subtitle {
+    color: #666;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* 리스트 컨테이너 */
+.notice-list-container {
+    width: 100%;
+    max-width: 900px;
+}
+
+.notice-item-wrapper {
+    margin-bottom: 15px;
+    border: 1px solid #222;
+    border-radius: 8px;
+    background-color: #0a0a0a;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.notice-item-wrapper:hover {
+    border-color: #333;
+    background-color: #0f0f0f;
+}
+
+/* 제목 행 */
+.notice-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.notice-title-row.active {
+    background-color: #111;
+    border-bottom: 1px solid #222;
+}
+
+.notice-title-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.notice-category {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #00d4ff;
+    font-weight: bold;
+}
+
+.notice-title-text {
+    color: #eee;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.notice-title-row.active .notice-title-text {
+    color: #00d4ff;
+}
+
+/* 오른쪽 정보 (날짜, 화살표) */
+.notice-right-info {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.notice-date {
+    color: #444;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.notice-arrow {
+    font-size: 0.7rem;
+    color: #333;
+    transition: transform 0.3s ease;
+}
+
+.notice-title-row.active .notice-arrow {
+    color: #00d4ff;
+}
+
+/* 내용 박스 */
+.notice-content-box {
+    background-color: #080808;
+    padding: 40px 30px;
+    border-top: 1px solid #1a1a1a;
+    animation: slideDown 0.3s ease-out;
+}
+
+.content-inner {
+    color: #aaa;
+    line-height: 1.8;
+    font-size: 1rem;
+}
+
+.notice-text-line {
+    margin-bottom: 10px;
+}
+
+.notice-footer-line {
+    margin-top: 30px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: #222;
+    letter-spacing: 2px;
+}
+
+/* 애니메이션 */
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.no-notice {
+    text-align: center;
+    color: #333;
+    padding: 100px 0;
+    font-style: italic;
+}

@@ -1,392 +1,259 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './AdminPage.css'; // 관리자 페이지 CSS (기존 파일)
+import { Link } from 'react-router-dom';
+import './AdminPage.css';
 
-const API_BASE_URL = 'http://localhost:8080/api'; // 백엔드 서버 포트 확인
-const IMAGE_SERVER_URL = 'http://localhost:8080/uploads'; // 업로드된 이미지 경로
+const API_BASE_URL = 'http://localhost:8080/api';
+const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
 function AdminPage() {
-    // --- 상태 관리 Hooks ---
-    // 제품(Product) 관련 상태
-    const [products, setProducts] = useState([]); // 모든 제품 목록
-    // imageFileName 필드 대신 실제 파일 객체를 관리할 상태를 추가합니다.
-    const [newProduct, setNewProduct] = useState({ name: '', description: '', price: '' });
-    const [newProductFile, setNewProductFile] = useState(null); // 새 제품 이미지 파일
+    // --- 1. 상태 관리 (States) ---
+    const [products, setProducts] = useState([]);
+    const [newProduct, setNewProduct] = useState({
+        name: '', description: '', price: '', category: 'KEYBOARD'
+    });
+    const [newProductFile, setNewProductFile] = useState(null);
+    const [editingProduct, setEditingProduct] = useState(null);
+    const [editingProductFile, setEditingProductFile] = useState(null);
 
-    const [editingProduct, setEditingProduct] = useState(null); // 수정 중인 제품 상태
-    const [editingProductFile, setEditingProductFile] = useState(null); // 수정 중인 제품 이미지 파일
+    const [notices, setNotices] = useState([]);
+    const [newNotice, setNewNotice] = useState({ title: '', content: '' });
+    const [editingNotice, setEditingNotice] = useState(null);
 
-    // 공지사항(Notice) 관련 상태
-    const [notices, setNotices] = useState([]); // 모든 공지사항 목록
-    const [newNotice, setNewNotice] = useState({ title: '', content: '' }); // 새 공지사항 입력 폼 상태
-    const [editingNotice, setEditingNotice] = useState(null); // 수정 중인 공지사항의 상태
+    const [isLoading, setIsLoading] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
-    // 회사 정보(CompanyInfo) 관련 상태
-    const [companyInfo, setCompanyInfo] = useState(null); // 현재 회사 정보
-    const [editingCompanyInfo, setEditingCompanyInfo] = useState(null); // 수정 중인 회사 정보 상태
-
-    // --- 데이터 로딩 (컴포넌트 마운트 시 한 번 실행) ---
+    // --- 2. 초기 데이터 로드 ---
     useEffect(() => {
         fetchProducts();
         fetchNotices();
-        fetchCompanyInfo();
     }, []);
 
-    // --- 제품(Product) CRUD 함수 ---
-    // 제품 목록 불러오기
     const fetchProducts = async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/products`);
-            setProducts(response.data);
-        } catch (error) {
-            alert('제품 데이터를 불러오는데 실패했습니다. 백엔드 서버를 확인해주세요.');
-            console.error('제품을 불러오는데 실패했습니다:', error);
-        }
+        try { const res = await axios.get(`${API_BASE_URL}/products`); setProducts(res.data); }
+        catch (err) { console.error('제품 로드 실패', err); }
     };
 
-    // 새 제품 입력 필드 변경 핸들러
-    const handleNewProductChange = (e) => {
-        const { name, value } = e.target;
-        setNewProduct(prev => ({ ...prev, [name]: value }));
+    const fetchNotices = async () => {
+        try { const res = await axios.get(`${API_BASE_URL}/notices`); setNotices(res.data); }
+        catch (err) { console.error('공지 로드 실패', err); }
     };
 
-    // 새 제품 파일 선택 핸들러
-    const handleNewProductFileChange = (e) => {
-        setNewProductFile(e.target.files[0]); // 선택한 첫 번째 파일을 상태에 저장
-    };
-
-    // 새 제품 추가 (FormData 방식)
-    const addProduct = async (e) => {
+    // --- 3. 제품 관리 함수 ---
+    const handleAddProduct = async (e) => {
         e.preventDefault();
-
-        // 이미지 파일을 포함하여 전송하기 위해 FormData를 사용합니다.
+        setIsLoading(true);
         const formData = new FormData();
-
-        // 백엔드 @RequestPart("product")와 매칭하기 위해 Blob으로 감싸서 전달
-        formData.append("product", new Blob([JSON.stringify(newProduct)], {
-            type: "application/json"
-        }));
-
-        // 백엔드 @RequestPart("image")와 매칭
-        if (newProductFile) {
-            formData.append("image", newProductFile);
-        }
+        formData.append("product", new Blob([JSON.stringify(newProduct)], { type: "application/json" }));
+        if (newProductFile) formData.append("image", newProductFile);
 
         try {
-            await axios.post(`${API_BASE_URL}/products`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            alert('제품이 성공적으로 추가되었습니다.');
-            setNewProduct({ name: '', description: '', price: '' }); // 폼 초기화
-            setNewProductFile(null); // 파일 상태 초기화
-            fetchProducts(); // 목록 새로고침
-        } catch (error) {
-            alert('제품 추가에 실패했습니다. 파일을 선택했는지 확인해주세요.');
-            console.error('제품 추가 실패:', error);
-        }
+            await axios.post(`${API_BASE_URL}/products`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            alert('✅ 제품이 성공적으로 등록되었습니다.');
+            setNewProduct({ name: '', description: '', price: '', category: 'KEYBOARD' });
+            setNewProductFile(null);
+            fetchProducts();
+        } catch (err) { alert('등록 중 오류가 발생했습니다.'); }
+        finally { setIsLoading(false); }
     };
 
-    // 제품 수정 모드 시작
     const startEditingProduct = (product) => {
         setEditingProduct({ ...product });
-        setEditingProductFile(null); // 수정 모드 진입 시 파일 선택 상태 초기화
+        setEditingProductFile(null);
     };
 
-    // 수정 중인 제품 입력 필드 변경 핸들러
-    const handleEditingProductChange = (e) => {
-        const { name, value } = e.target;
-        setEditingProduct(prev => ({ ...prev, [name]: value }));
-    };
-
-    // 수정 중인 제품 파일 선택 핸들러
-    const handleEditingProductFileChange = (e) => {
-        setEditingProductFile(e.target.files[0]);
-    };
-
-    // 제품 수정 완료 (FormData 방식)
-    const updateProduct = async (e) => {
+    const handleUpdateProduct = async (e) => {
         e.preventDefault();
-        if (!editingProduct) return;
-
+        setIsUpdating(true);
         const formData = new FormData();
-        formData.append("product", new Blob([JSON.stringify(editingProduct)], {
-            type: "application/json"
-        }));
-
-        if (editingProductFile) {
-            formData.append("image", editingProductFile);
-        }
+        formData.append("product", new Blob([JSON.stringify(editingProduct)], { type: "application/json" }));
+        if (editingProductFile) formData.append("image", editingProductFile);
 
         try {
-            await axios.put(`${API_BASE_URL}/products/${editingProduct.id}`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            alert('제품이 성공적으로 수정되었습니다.');
+            await axios.put(`${API_BASE_URL}/products/${editingProduct.id}`, formData);
+            alert('✅ 제품 정보가 수정되었습니다.');
             setEditingProduct(null);
-            setEditingProductFile(null);
             fetchProducts();
-        } catch (error) {
-            alert('제품 수정에 실패했습니다.');
-            console.error('제품 수정 실패:', error);
-        }
+        } catch (err) { alert('수정 중 오류가 발생했습니다.'); }
+        finally { setIsUpdating(false); }
     };
 
-    // 제품 삭제
-    const deleteProduct = async (id) => {
-        if (window.confirm('정말로 이 제품을 삭제하시겠습니까?')) {
-            try {
-                await axios.delete(`${API_BASE_URL}/products/${id}`);
-                alert('제품이 성공적으로 삭제되었습니다.');
-                fetchProducts();
-            } catch (error) {
-                alert('제품 삭제에 실패했습니다.');
-                console.error('제품 삭제 실패:', error);
-            }
-        }
-    };
-
-    // --- 공지사항(Notice) CRUD 함수 ---
-    const fetchNotices = async () => {
+    const handleDeleteProduct = async (id) => {
+        if (!window.confirm('이 제품을 삭제하시겠습니까?')) return;
         try {
-            const response = await axios.get(`${API_BASE_URL}/notices`);
-            setNotices(response.data);
-        } catch (error) {
-            console.error('공지사항 불러오기 실패:', error);
-        }
+            await axios.delete(`${API_BASE_URL}/products/${id}`);
+            fetchProducts();
+        } catch (err) { alert('삭제 실패'); }
     };
 
-    const handleNewNoticeChange = (e) => {
-        const { name, value } = e.target;
-        setNewNotice(prev => ({ ...prev, [name]: value }));
-    };
-
-    const addNotice = async (e) => {
+    // --- 4. 공지사항 관리 함수 ---
+    const handleAddNotice = async (e) => {
         e.preventDefault();
         try {
             await axios.post(`${API_BASE_URL}/notices`, newNotice);
-            alert('공지사항이 추가되었습니다.');
+            alert('✅ 공지사항이 등록되었습니다.');
             setNewNotice({ title: '', content: '' });
             fetchNotices();
-        } catch (error) {
-            console.error('공지사항 추가 실패:', error);
-        }
+        } catch (err) { alert('공지 등록 실패'); }
     };
 
     const startEditingNotice = (notice) => {
         setEditingNotice({ ...notice });
     };
 
-    const handleEditingNoticeChange = (e) => {
-        const { name, value } = e.target;
-        setEditingNotice(prev => ({ ...prev, [name]: value }));
-    };
-
-    const updateNotice = async (e) => {
+    const handleUpdateNotice = async (e) => {
         e.preventDefault();
-        if (!editingNotice) return;
         try {
             await axios.put(`${API_BASE_URL}/notices/${editingNotice.id}`, editingNotice);
-            alert('공지사항이 수정되었습니다.');
+            alert('✅ 공지사항이 수정되었습니다.');
             setEditingNotice(null);
             fetchNotices();
-        } catch (error) {
-            console.error('공지사항 수정 실패:', error);
-        }
+        } catch (err) { alert('공지 수정 실패'); }
     };
 
     const deleteNotice = async (id) => {
-        if (window.confirm('정말로 이 공지사항을 삭제하시겠습니까?')) {
-            try {
-                await axios.delete(`${API_BASE_URL}/notices/${id}`);
-                fetchNotices();
-            } catch (error) {
-                console.error('공지사항 삭제 실패:', error);
-            }
-        }
-    };
-
-    // --- 회사 정보(Company Info) CRUD 함수 ---
-    const fetchCompanyInfo = async () => {
+        if (!window.confirm('공지사항을 삭제하시겠습니까?')) return;
         try {
-            const response = await axios.get(`${API_BASE_URL}/company-info`);
-            setCompanyInfo(response.data);
-        } catch (error) {
-            console.error('회사 정보 불러오기 실패:', error);
-        }
+            await axios.delete(`${API_BASE_URL}/notices/${id}`);
+            fetchNotices();
+        } catch (err) { alert('공지 삭제 실패'); }
     };
 
-    const startEditingCompanyInfo = () => {
-        setEditingCompanyInfo({ ...companyInfo });
-    };
-
-    const handleEditingCompanyInfoChange = (e) => {
-        const { name, value } = e.target;
-        setEditingCompanyInfo(prev => ({ ...prev, [name]: value }));
-    };
-
-    const updateCompanyInfo = async (e) => {
-        e.preventDefault();
-        if (!editingCompanyInfo) return;
-        try {
-            const response = await axios.put(`${API_BASE_URL}/company-info`, editingCompanyInfo);
-            alert('회사 정보가 수정되었습니다.');
-            setCompanyInfo(response.data);
-            setEditingCompanyInfo(null);
-        } catch (error) {
-            console.error('회사 정보 수정 실패:', error);
-        }
-    };
-
-    // --- JSX 렌더링 ---
     return (
-        <div className="admin-page-container">
-            <h1>관리자 페이지</h1>
+        <div className="admin-dashboard">
+            <header className="admin-hero">
+                <h1>ROOT STATION <span className="highlight-text">CORE CONTROL</span></h1>
+                <Link to="/admin/orders" className="nav-shortcut"><span>📦 주문 공정 시스템 이동</span></Link>
+            </header>
 
-            {/* 회사 정보 관리 섹션 */}
-            <section className="admin-section company-info-section">
-                <h2>회사 정보 관리</h2>
-                {companyInfo ? (
-                    editingCompanyInfo ? (
-                        <form onSubmit={updateCompanyInfo} className="admin-form edit-form">
-                            <h3>회사 정보 수정</h3>
-                            <input type="text" name="name" value={editingCompanyInfo.name || ''} onChange={handleEditingCompanyInfoChange} placeholder="회사 이름" required />
-                            <textarea name="description" value={editingCompanyInfo.description || ''} onChange={handleEditingCompanyInfoChange} placeholder="회사 설명" required />
-                            <input type="text" name="address" value={editingCompanyInfo.address || ''} onChange={handleEditingCompanyInfoChange} placeholder="주소" required />
-                            <input type="text" name="phone" value={editingCompanyInfo.phone || ''} onChange={handleEditingCompanyInfoChange} placeholder="전화번호" required />
-                            <input type="email" name="email" value={editingCompanyInfo.email || ''} onChange={handleEditingCompanyInfoChange} placeholder="이메일" required />
+            <div className="admin-grid">
+                {/* 왼쪽 컬럼: 제품 및 공지 등록 */}
+                <div className="admin-col">
+                    <section className="admin-section">
+                        <h2>✨ 신규 제품 등록</h2>
+                        <form onSubmit={handleAddProduct} className="admin-form">
+                            <div className="input-group-field">
+                                <label>제품 분류 (Category)</label>
+                                <select
+                                    className="admin-select"
+                                    value={newProduct.category}
+                                    onChange={(e)=>setNewProduct({...newProduct, category: e.target.value})}
+                                >
+                                    <option value="KEYBOARD">KEYBOARD (키보드)</option>
+                                    <option value="PC">PC (데스크탑)</option>
+                                    <option value="MONITOR">MONITOR (모니터)</option>
+                                    <option value="ACC">ACCESSORY (소품/기타)</option>
+                                </select>
+                            </div>
+                            <input type="text" placeholder="제품 이름" value={newProduct.name} onChange={(e)=>setNewProduct({...newProduct, name: e.target.value})} required />
+                            <textarea placeholder="상세 사양" value={newProduct.description} onChange={(e)=>setNewProduct({...newProduct, description: e.target.value})} required />
+                            <input type="number" placeholder="가격 (KRW)" value={newProduct.price} onChange={(e)=>setNewProduct({...newProduct, price: e.target.value})} required />
+                            <div className="custom-file-upload">
+                                <label htmlFor="file-add">📸 제품 이미지 선택</label>
+                                <input id="file-add" type="file" onChange={(e)=>setNewProductFile(e.target.files[0])} />
+                                {newProductFile && <span className="file-name">{newProductFile.name}</span>}
+                            </div>
+                            <button type="submit" className="btn-submit-ai" disabled={isLoading}>
+                                {isLoading ? 'AI 분석 중...' : '분석 및 제품 등록'}
+                            </button>
+                        </form>
+                    </section>
+
+                    <section className="admin-section">
+                        <h2>📢 새 공지사항 작성</h2>
+                        <form onSubmit={handleAddNotice} className="admin-form">
+                            <input type="text" placeholder="공지사항 제목" value={newNotice.title} onChange={(e)=>setNewNotice({...newNotice, title: e.target.value})} required />
+                            <textarea placeholder="내용을 입력하세요" value={newNotice.content} onChange={(e)=>setNewNotice({...newNotice, content: e.target.value})} required />
+                            <button type="submit" className="btn-primary">공지사항 등록</button>
+                        </form>
+                    </section>
+                </div>
+
+                {/* 오른쪽 컬럼: 목록 관리 */}
+                <div className="admin-col">
+                    <section className="admin-section list-section">
+                        <h2>📦 제품 라이브러리 ({products.length})</h2>
+                        <div className="vertical-scroll-area">
+                            {products.length > 0 ? products.map(p => (
+                                <div key={p.id} className="admin-list-card">
+                                    <img src={`${IMAGE_SERVER_URL}/${p.imageFileName}`} alt="" className="list-thumb" onError={(e)=>e.target.src='https://via.placeholder.com/50'}/>
+                                    <div className="list-info">
+                                        <div className="list-title-row">
+                                            <span className="category-tag">[{p.category || 'GEAR'}]</span>
+                                            <h4>{p.name}</h4>
+                                        </div>
+                                        <span className="price-tag">{p.price?.toLocaleString()} KRW</span>
+                                    </div>
+                                    <div className="list-btns">
+                                        <button onClick={() => startEditingProduct(p)}>수정</button>
+                                        <button onClick={() => handleDeleteProduct(p.id)} className="btn-del">삭제</button>
+                                    </div>
+                                </div>
+                            )) : <p className="dim-text">등록된 제품이 없습니다.</p>}
+                        </div>
+                    </section>
+
+                    <section className="admin-section">
+                        <h2>🔔 공지사항 기록</h2>
+                        <div className="vertical-scroll-area">
+                            {notices.length > 0 ? notices.map(n => (
+                                <div key={n.id} className="admin-list-card notice-item-vertical">
+                                    {editingNotice && editingNotice.id === n.id ? (
+                                        <form onSubmit={handleUpdateNotice} className="edit-inline-form">
+                                            <input type="text" value={editingNotice.title} onChange={(e)=>setEditingNotice({...editingNotice, title: e.target.value})} />
+                                            <textarea value={editingNotice.content} onChange={(e)=>setEditingNotice({...editingNotice, content: e.target.value})} />
+                                            <div className="form-actions">
+                                                <button type="submit" className="btn-save-small">저장</button>
+                                                <button type="button" className="btn-cancel-small" onClick={()=>setEditingNotice(null)}>닫기</button>
+                                            </div>
+                                        </form>
+                                    ) : (
+                                        <>
+                                            <div className="list-info">
+                                                <h4>{n.title}</h4>
+                                                <p className="notice-preview">{n.content}</p>
+                                            </div>
+                                            <div className="list-btns">
+                                                <button onClick={() => startEditingNotice(n)}>수정</button>
+                                                <button onClick={() => deleteNotice(n.id)} className="btn-del">삭제</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )) : <p className="dim-text">등록된 공지사항이 없습니다.</p>}
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            {/* 제품 수정 모달 */}
+            {editingProduct && (
+                <div className="edit-overlay">
+                    <div className="edit-modal">
+                        <h3>제품 상세 정보 수정</h3>
+                        <form onSubmit={handleUpdateProduct} className="admin-form">
+                            <label className="modal-label">제품 카테고리</label>
+                            <select
+                                className="admin-select"
+                                value={editingProduct.category}
+                                onChange={(e)=>setEditingProduct({...editingProduct, category: e.target.value})}
+                            >
+                                <option value="KEYBOARD">KEYBOARD</option>
+                                <option value="PC">PC</option>
+                                <option value="MONITOR">MONITOR</option>
+                                <option value="ACC">ACC</option>
+                            </select>
+                            <input type="text" value={editingProduct.name} onChange={(e)=>setEditingProduct({...editingProduct, name: e.target.value})} placeholder="제품 이름" />
+                            <textarea value={editingProduct.description} onChange={(e)=>setEditingProduct({...editingProduct, description: e.target.value})} placeholder="제품 설명" />
+                            <input type="number" value={editingProduct.price} onChange={(e)=>setEditingProduct({...editingProduct, price: e.target.value})} placeholder="가격" />
                             <div className="form-actions">
-                                <button type="submit">저장</button>
-                                <button type="button" onClick={() => setEditingCompanyInfo(null)}>취소</button>
+                                <button type="submit" className="btn-primary" disabled={isUpdating}>{isUpdating ? '저장 중...' : '저장하기'}</button>
+                                <button type="button" className="btn-cancel" onClick={() => setEditingProduct(null)}>취소</button>
                             </div>
                         </form>
-                    ) : (
-                        <div className="item-display">
-                            <div className="item-info">
-                                <h3>{companyInfo.name}</h3>
-                                <p><strong>주소:</strong> {companyInfo.address}</p>
-                                <p><strong>전화:</strong> {companyInfo.phone}</p>
-                                <p><strong>이메일:</strong> {companyInfo.email}</p>
-                            </div>
-                            <div className="item-actions">
-                                <button onClick={startEditingCompanyInfo}>수정</button>
-                            </div>
-                        </div>
-                    )
-                ) : <p>회사 정보를 불러오는 중...</p>}
-            </section>
-
-            {/* 제품 관리 섹션 */}
-            <section className="admin-section product-section">
-                <h2>제품 관리</h2>
-                <form onSubmit={addProduct} className="admin-form">
-                    <h3>새 제품 추가</h3>
-                    <input type="text" name="name" value={newProduct.name} onChange={handleNewProductChange} placeholder="제품 이름" required />
-                    <textarea name="description" value={newProduct.description} onChange={handleNewProductChange} placeholder="제품 설명" required />
-                    <input type="number" name="price" value={newProduct.price} onChange={handleNewProductChange} placeholder="가격" required />
-
-                    {/* 텍스트 입력창 대신 파일 업로드 인풋 추가 */}
-                    <div className="file-input-group" style={{ margin: '10px 0', textAlign: 'left' }}>
-                        <label style={{ color: '#ff7a3c', display: 'block', marginBottom: '5px' }}>제품 이미지 업로드:</label>
-                        <input type="file" accept="image/*" onChange={handleNewProductFileChange} required />
                     </div>
-
-                    <button type="submit">제품 추가</button>
-                </form>
-
-                <div className="admin-list-container">
-                    <h3>제품 목록</h3>
-                    {products.length > 0 ? (
-                        <ul className="admin-list">
-                            {products.map(product => (
-                                <li key={product.id} className="admin-list-item">
-                                    {editingProduct && editingProduct.id === product.id ? (
-                                        <form onSubmit={updateProduct} className="edit-form">
-                                            <input type="text" name="name" value={editingProduct.name} onChange={handleEditingProductChange} required />
-                                            <textarea name="description" value={editingProduct.description} onChange={handleEditingProductChange} required />
-                                            <input type="number" name="price" value={editingProduct.price} onChange={handleEditingProductChange} required />
-
-                                            {/* 수정 시에도 이미지 변경이 가능하도록 파일 인풋 추가 */}
-                                            <div className="file-input-group" style={{ margin: '10px 0', textAlign: 'left' }}>
-                                                <label style={{ color: '#ff7a3c' }}>이미지 변경(선택):</label>
-                                                <input type="file" accept="image/*" onChange={handleEditingProductFileChange} />
-                                            </div>
-
-                                            <div className="form-actions">
-                                                <button type="submit">저장</button>
-                                                <button type="button" onClick={() => setEditingProduct(null)}>취소</button>
-                                            </div>
-                                        </form>
-                                    ) : (
-                                        <div className="item-display">
-                                            <div className="item-info" style={{ display: 'flex', alignItems: 'center' }}>
-                                                {/* 서버의 이미지 경로를 사용하여 이미지 표시 */}
-                                                <img
-                                                    src={`${IMAGE_SERVER_URL}/${product.imageFileName}`}
-                                                    alt={product.name}
-                                                    style={{ width: '60px', height: '60px', borderRadius: '5px', marginRight: '15px', objectFit: 'cover' }}
-                                                    onError={(e) => { e.target.src = 'https://via.placeholder.com/60'; }} // 이미지 없을 시 대체
-                                                />
-                                                <div>
-                                                    <h4>{product.name} ({product.price?.toLocaleString()}원)</h4>
-                                                    <p style={{ fontSize: '0.9em', color: '#ccc' }}>{product.description}</p>
-                                                </div>
-                                            </div>
-                                            <div className="item-actions">
-                                                <button onClick={() => startEditingProduct(product)}>수정</button>
-                                                <button onClick={() => deleteProduct(product.id)} className="delete-button">삭제</button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : <p>등록된 제품이 없습니다.</p>}
                 </div>
-            </section>
-
-            {/* 공지사항 관리 섹션 */}
-            <section className="admin-section notice-section">
-                <h2>공지사항 관리</h2>
-                <form onSubmit={addNotice} className="admin-form">
-                    <h3>새 공지사항 추가</h3>
-                    <input type="text" name="title" value={newNotice.title} onChange={handleNewNoticeChange} placeholder="제목" required />
-                    <textarea name="content" value={newNotice.content} onChange={handleNewNoticeChange} placeholder="내용" required />
-                    <button type="submit">공지사항 추가</button>
-                </form>
-
-                <div className="admin-list-container">
-                    <h3>공지사항 목록</h3>
-                    {notices.length > 0 ? (
-                        <ul className="admin-list">
-                            {notices.map(notice => (
-                                <li key={notice.id} className="admin-list-item">
-                                    {editingNotice && editingNotice.id === notice.id ? (
-                                        <form onSubmit={updateNotice} className="edit-form">
-                                            <input type="text" name="title" value={editingNotice.title} onChange={handleEditingNoticeChange} required />
-                                            <textarea name="content" value={editingNotice.content} onChange={handleEditingNoticeChange} required />
-                                            <div className="form-actions">
-                                                <button type="submit">저장</button>
-                                                <button type="button" onClick={() => setEditingNotice(null)}>취소</button>
-                                            </div>
-                                        </form>
-                                    ) : (
-                                        <div className="item-display">
-                                            <div className="item-info">
-                                                <h4>{notice.title}</h4>
-                                                <p>{notice.content}</p>
-                                            </div>
-                                            <div className="item-actions">
-                                                <button onClick={() => startEditingNotice(notice)}>수정</button>
-                                                <button onClick={() => deleteNotice(notice.id)} className="delete-button">삭제</button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : <p>등록된 공지사항이 없습니다.</p>}
-                </div>
-            </section>
+            )}
         </div>
     );
 }

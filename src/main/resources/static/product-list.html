@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>SDP 쇼핑몰 - 상품 목록</title>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; }
+
+        /* 그리드 레이아웃 (반응형) */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        /* 상품 카드 스타일 */
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .card:hover { transform: translateY(-5px); }
+
+        .card-img { width: 100%; height: 200px; background-color: #ddd; object-fit: cover; }
+        .card-body { padding: 15px; }
+        .card-title { font-size: 1.1em; font-weight: bold; margin: 0 0 10px; }
+        .card-price { color: #e74c3c; font-weight: bold; font-size: 1.2em; }
+        .btn-add {
+            display: block; width: 100%; padding: 10px; margin-top: 10px;
+            background: #333; color: white; border: none; border-radius: 5px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📦 최신 상품 목록</h1>
+    <div id="product-list" class="product-grid">
+    </div>
+</div>
+
+<script>
+    // 페이지 열리자마자 실행
+    loadProducts();
+
+    async function loadProducts() {
+        try {
+            // 1. 전체 상품 목록 API 호출
+            const response = await fetch('http://localhost:8080/api/products');
+            const products = await response.json();
+
+            const listContainer = document.getElementById('product-list');
+            listContainer.innerHTML = '';
+
+            // 2. 카드 만들기
+            products.forEach(p => {
+                // 이미지 없으면 기본 이미지
+                const imgUrl = p.imageFileName ?
+                    (p.imageFileName.startsWith('http') ? p.imageFileName : '/uploads/' + p.imageFileName)
+                    : 'https://via.placeholder.com/300?text=No+Image';
+
+                const html = `
+                        <div class="card" onclick="location.href='product-detail.html?id=${p.id}'">
+                            <img src="${imgUrl}" class="card-img" alt="${p.name}">
+                            <div class="card-body">
+                                <div class="card-title">${p.name}</div>
+                                <div class="card-price">${p.price.toLocaleString()}원</div>
+                                <button class="btn-add">자세히 보기</button>
+                            </div>
+                        </div>
+                    `;
+                listContainer.innerHTML += html;
+            });
+
+        } catch (error) {
+            console.error("상품 불러오기 실패:", error);
+            document.getElementById('product-list').innerHTML = '<p>상품을 불러올 수 없습니다. 서버를 확인해주세요.</p>';
+        }
+    }
+</script>
+</body>
+</html>
