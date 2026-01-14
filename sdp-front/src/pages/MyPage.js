@@ -11,6 +11,10 @@ function MyPage() {
     const [rawOrderList, setRawOrderList] = useState([]);
     const [cartCount, setCartCount] = useState(0);
 
+    // ✨ [추가됨] 친구가 만든 문의 내역 상태 변수
+    const [myContacts, setMyContacts] = useState([]);
+    const [expandedContactId, setExpandedContactId] = useState(null);
+
     const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     // 로그인 시 저장해둔 진짜 영어 아이디
@@ -36,22 +40,27 @@ function MyPage() {
         });
 
         if (storedName !== '관리자') {
-            // ⭐ [핵심 수정] 이제 이름(storedName)이 아니라 아이디(realMemberId)로 주문을 찾습니다.
-            // 이렇게 하면 탈퇴 후 재가입해도 예전 주문이 딸려오지 않습니다.
+            // 1. [유지] 주문 내역 불러오기 (ID 기준 - 님이 고친 코드)
             if (realMemberId) {
                 axios.get(`http://localhost:8080/api/shop-orders?memberId=${realMemberId}`)
                     .then(res => setRawOrderList(res.data))
                     .catch(err => console.error("주문 내역 로드 실패", err));
             }
 
+            // 2. 장바구니 개수
             axios.get(`http://localhost:8080/api/cart?memberName=${storedName}`)
                 .then(res => setCartCount(res.data.length))
                 .catch(err => console.error("장바구니 로드 실패", err));
+
+            // ✨ 3. [추가됨] 문의 내역 불러오기 (친구 코드)
+            axios.get(`http://localhost:8080/api/contact/my/${storedName}`)
+                .then(res => setMyContacts(res.data))
+                .catch(err => console.error("문의 내역 로드 실패", err));
         }
 
-    }, [navigate, realMemberId]); // realMemberId가 바뀔 때도 실행되도록 의존성 추가
+    }, [navigate, realMemberId]);
 
-    // --- (아래 로직은 그대로 유지) ---
+    // 주문 내역 그룹화 로직
     const groupedOrders = useMemo(() => {
         const groups = {};
         rawOrderList.forEach(order => {
@@ -85,6 +94,11 @@ function MyPage() {
         }
     };
 
+    // ✨ [추가됨] 문의글 토글 함수
+    const toggleContact = (id) => {
+        setExpandedContactId(expandedContactId === id ? null : id);
+    };
+
     const getStatusText = (status) => {
         switch (status) {
             case 'ORDERED': return '주문 접수';
@@ -102,7 +116,7 @@ function MyPage() {
         }
     };
 
-    // [회원 탈퇴] 핸들러
+    // [유지] 회원 탈퇴 핸들러 (님이 고친 코드)
     const handleWithdrawal = async () => {
         if (!window.confirm("정말로 탈퇴하시겠습니까? \n탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.")) {
             return;
@@ -121,11 +135,7 @@ function MyPage() {
             });
 
             alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
-
-            // 1. 로컬 스토리지 비우기 (로그아웃)
             localStorage.clear();
-
-            // 2. 메인으로 이동하며 새로고침
             window.location.href = '/';
 
         } catch (err) {
@@ -186,6 +196,73 @@ function MyPage() {
                             </Link>
                         </div>
 
+                        {/* ✨ [추가됨] 내가 보낸 문의 섹션 (친구 코드 UI) */}
+                        <h3 style={{marginTop: '50px'}}>📩 내가 보낸 문의 ({myContacts.length}건)</h3>
+                        <div style={{ marginTop: '20px', marginBottom: '50px' }}>
+                            {myContacts.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {myContacts.map((contact) => (
+                                        <div key={contact.id} style={{ background: '#1a1a1a', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>
+                                            <div
+                                                onClick={() => toggleContact(contact.id)}
+                                                style={{
+                                                    padding: '20px',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    cursor: 'pointer',
+                                                    borderLeft: contact.answer ? '4px solid #00d4ff' : '4px solid #555',
+                                                    background: expandedContactId === contact.id ? '#222' : '#1a1a1a',
+                                                    transition: '0.3s'
+                                                }}
+                                            >
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: 'white' }}>
+                                                        {contact.title}
+                                                    </h4>
+                                                    <p style={{ color: '#666', margin: 0, fontSize: '0.8rem' }}>
+                                                        {new Date(contact.createdAt).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                                                    {contact.answer ? (
+                                                        <span style={{background: '#00d4ff', color: 'black', fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold'}}>답변 완료</span>
+                                                    ) : (
+                                                        <span style={{background: '#333', color: '#aaa', fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px'}}>대기 중</span>
+                                                    )}
+                                                    <span style={{fontSize:'0.8rem', color:'#666'}}>
+                                                        {expandedContactId === contact.id ? '▲' : '▼'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {expandedContactId === contact.id && (
+                                                <div style={{ background: '#000', padding: '20px', borderTop: '1px solid #333', animation: 'slideDown 0.3s ease-out' }}>
+                                                    <div style={{marginBottom: '20px'}}>
+                                                        <p style={{color: '#ddd', fontSize: '0.95rem', lineHeight: '1.5', whiteSpace: 'pre-wrap'}}>{contact.content}</p>
+                                                    </div>
+                                                    {contact.answer && (
+                                                        <div style={{background: 'rgba(0, 212, 255, 0.05)', padding: '15px', borderRadius: '8px', borderLeft: '3px solid #00d4ff'}}>
+                                                            <h5 style={{margin: '0 0 10px 0', color: '#00d4ff', fontSize: '0.9rem'}}>↳ ROOT STATION 고객센터</h5>
+                                                            <p style={{color: '#ccc', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap'}}>
+                                                                {contact.answer}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ background: '#1a1a1a', padding: '30px', textAlign: 'center', borderRadius: '8px', color: '#666' }}>
+                                    <p>작성한 문의 내역이 없습니다.</p>
+                                    <Link to="/contact" style={{ color: '#00d4ff', textDecoration: 'none', fontSize: '0.9rem' }}>1:1 문의하러 가기 &rarr;</Link>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 최근 주문 내역 (님의 UI 유지) */}
                         <h3>📦 최근 주문 내역 ({groupedOrders.length}건)</h3>
                         <div style={{ marginTop: '20px' }}>
                             {groupedOrders.length > 0 ? (

@@ -106,8 +106,8 @@ function HomePage() {
                 </div>
 
                 <div className="hero-content">
-                    <span className="hero-tagline">// BUILD YOUR ULTIMATE WORKSTATION</span>
-                    <h1 className="brand-logo-text">ROOT STATION</h1>
+                    <span className="hero-tagline">BUILD YOUR ULTIMATE WORKSTATION</span>
+                    <h1 className="brand-logo-text">다나와 컴</h1>
 
                     {/* 👇 [수정됨] 검색창을 여기에 배치했습니다! 👇 */}
                     <div style={{ marginTop: '20px', marginBottom: '30px' }}>

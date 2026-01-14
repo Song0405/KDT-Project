@@ -13,8 +13,10 @@ import FindPage from './pages/FindPage';
 import NoticePage from './pages/NoticePage';
 import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
-import './index.css';
 import CartPage from "./pages/CartPage";
+import ContactPage from './pages/ContactPage'; // ✨ [1] 문의하기 페이지 import 추가
+
+import './index.css';
 import ChangeInfoPage from './pages/ChangeInfoPage';
 
 function App() {
@@ -120,6 +122,10 @@ function App() {
                             <div style={styles.menuColumn}>
                                 <h3 style={styles.columnTitle}>SUPPORT</h3>
                                 <Link style={styles.menuItem} to="/notices" onClick={toggleMenu}>공지사항</Link>
+
+                                {/* ✨ [2] 여기에 문의하기 버튼 추가했습니다! */}
+                                <Link style={styles.menuItem} to="/contact" onClick={toggleMenu}>1:1 문의하기</Link>
+
                                 {/* 관리자 모드 링크 */}
                                 <Link style={styles.menuItem} to="/admin" onClick={toggleMenu} style={{color: '#bb86fc'}}>관리자 모드</Link>
                             </div>
@@ -136,6 +142,10 @@ function App() {
                     <Route path="/members/find" element={<FindPage />} />
                     <Route path="/members/mypage" element={<MyPage />} />
                     <Route path="/notices" element={<NoticePage />} />
+
+                    {/* ✨ [3] 문의하기 페이지 라우터 연결 완료! */}
+                    <Route path="/contact" element={<ContactPage />} />
+
                     <Route path="/track" element={<OrderSearchPage />} />
                     <Route path="/products" element={<ProductListPage />} />
                     <Route path="/products/:id" element={<ProductDetailPage />} />

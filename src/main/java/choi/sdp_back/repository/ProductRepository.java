@@ -10,4 +10,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByName(String name);
 
     List<Product> findByNameContainingIgnoreCase(String keyword);
+    // 👇 용도별 조회 기능 추가 (SELECT * FROM PRODUCT WHERE USAGE_TYPE = ?)
+    List<Product> findByUsageType(String usageType);
 }

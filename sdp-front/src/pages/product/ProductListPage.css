@@ -185,6 +185,38 @@
     border-radius: 50%;
     cursor: pointer;
 }
+/* 새로 추가된 용도 필터 버튼 */
+.usage-filter-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.usage-btn {
+    background: transparent;
+    border: 1px solid #555;
+    color: #888;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+/* 선택되면 네온 효과 */
+.usage-btn.active {
+    border-color: #00f2ff;
+    color: #00f2ff;
+    background: rgba(0, 242, 255, 0.1);
+    box-shadow: 0 0 8px rgba(0, 242, 255, 0.3);
+    font-weight: bold;
+}
+
+.usage-btn:hover {
+    border-color: #fff;
+    color: #fff;
+}
 
 /* 로딩 및 에러 */
 .loading-screen, .no-gear-message {

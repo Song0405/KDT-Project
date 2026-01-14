@@ -83,7 +83,6 @@ function CartPage() {
 
         IMP.request_pay(data, async (response) => {
             if (response.success) {
-                // ⭐ [핵심 수정] 서버로 보낼 때 memberId를 꼭 포함해야 합니다!
                 const orderDataList = selectedItems.map(item => ({
                     memberId: userInfo.memberId, // 👈 여기가 핵심입니다.
                     memberName: userInfo.name,
