@@ -1,4 +1,4 @@
-package choi.sdp_back.domain;
+package choi.sdp_back.domain; // 패키지명 확인
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -21,7 +21,10 @@ public class ShopOrder {
     private int price;          // 가격
     private String merchantUid; // 주문번호
 
-    private LocalDateTime orderDate; // 주문일시
+    // ⭐ [추가됨] 주문 상태 (ORDERED, SHIPPING 등)
+    private String status = "ORDERED";
+
+    private LocalDateTime orderDate;
 
     @PrePersist
     public void prePersist() {
