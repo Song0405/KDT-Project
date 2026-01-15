@@ -19,20 +19,25 @@ public class ProductController {
     private final ProductService productService;
 
     // 1. 전체 상품 조회
-    // (기존의 getProductsByUsage, searchProducts 로직을 모두 이걸로 통합했습니다)
-    // 프론트엔드에서 필터링(게이밍/오피스 등)을 수행하므로, 백엔드는 그냥 다 줍니다.
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
-    // 2. 상품 상세 조회
+    // ⭐ [추가됨] 검색 API (/api/products/search?keyword=...)
+    // 중요: @GetMapping("/{id}") 보다 위에 있어야 안전합니다!
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam("keyword") String keyword) {
+        return ResponseEntity.ok(productService.searchProducts(keyword));
+    }
+
+    // 2. 상품 상세 조회 (ID는 숫자만 받음)
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponseDto> getProductDetail(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductDetail(id));
     }
 
-    // 3. 상품 등록 (이미지 포함)
+    // 3. 상품 등록
     @PostMapping
     public ResponseEntity<ProductDto> createProduct(
             @RequestPart("product") ProductDto productDto,
@@ -40,7 +45,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.createProduct(productDto, imageFile));
     }
 
-    // 4. 상품 수정 (이미지 포함)
+    // 4. 상품 수정
     @PutMapping("/{id}")
     public ResponseEntity<ProductDto> updateProduct(
             @PathVariable Long id,
