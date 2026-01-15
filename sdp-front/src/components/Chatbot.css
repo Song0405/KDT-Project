@@ -1,6 +1,6 @@
-/* Chatbot.css - Round & Neon Style */
+/* Chatbot.css - Final: Round & Neon + Right Align */
 
-/* 1. 챗봇 버튼 (완전한 원형) */
+/* 1. 챗봇 버튼 (원형) */
 .chatbot-btn {
     position: fixed;
     bottom: 30px;
@@ -10,7 +10,7 @@
     background: #000;
     color: #00d4ff;
     border: 2px solid #00d4ff;
-    border-radius: 50%; /* ⭐ 완전 둥글게 */
+    border-radius: 50%;
     font-size: 30px;
     cursor: pointer;
     z-index: 9999;
@@ -28,7 +28,7 @@
     box-shadow: 0 0 25px rgba(0, 212, 255, 0.8);
 }
 
-/* 2. 챗봇 메인 윈도우 (둥근 모서리 카드) */
+/* 2. 챗봇 윈도우 (둥근 모서리) */
 .chat-window {
     position: fixed;
     bottom: 110px;
@@ -37,7 +37,7 @@
     height: 600px;
     background: rgba(15, 15, 15, 0.95);
     border: 1px solid #333;
-    border-radius: 25px; /* ⭐ 창 모서리 둥글게 */
+    border-radius: 25px;
     display: flex;
     flex-direction: column;
     z-index: 9998;
@@ -46,7 +46,7 @@
     overflow: hidden;
 }
 
-/* 3. 헤더 (위쪽 모서리만 둥글게) */
+/* 3. 헤더 (상단 둥글게) */
 .chat-header {
     background: linear-gradient(90deg, #111, #000);
     color: #00d4ff;
@@ -56,7 +56,6 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    /* ⭐ 윈도우 곡선에 맞춤 */
     border-top-left-radius: 25px;
     border-top-right-radius: 25px;
 }
@@ -70,43 +69,39 @@
     display: flex;
     flex-direction: column;
     gap: 15px;
-
-    /* 스크롤바 스타일 */
     scrollbar-width: thin;
     scrollbar-color: #333 transparent;
 }
 
-/* ⭐ [핵심 수정] 가로(row) 대신 세로(column)를 써야 버튼이 밑으로 내려옵니다 */
+/* ⭐ 컨테이너: 세로 정렬 (버튼이 말풍선 아래로 오게) */
 .message-container {
     display: flex;
-    flex-direction: column; /* 수직 정렬 (위: 말풍선, 아래: 버튼) */
+    flex-direction: column;
     width: 100%;
 }
 
-/* 🤖 봇: 모든 요소를 왼쪽 벽에 정렬 */
+/* 🤖 봇: 왼쪽 정렬 */
 .message-container.bot {
     align-items: flex-start;
 }
 
-/* 👤 유저: 모든 요소를 오른쪽 벽에 정렬 */
+/* 👤 유저: 오른쪽 정렬 */
 .message-container.user {
     align-items: flex-end;
 }
 
-
-/* 5. 메시지 말풍선 (동글동글하게) */
+/* 5. 말풍선 디자인 */
 .message {
-    max-width: 80%; /* 너무 길어지지 않게 */
+    max-width: 80%;
     padding: 12px 18px;
     font-size: 0.95rem;
     line-height: 1.5;
     position: relative;
-    white-space: pre-wrap; /* 줄바꿈 유지 */
+    white-space: pre-wrap; /* 줄바꿈 적용 */
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    word-break: break-all; /* 긴 영어 단어 줄바꿈 */
+    word-break: break-all;
 }
 
-/* 🤖 봇 메시지 디자인 */
 .message.bot {
     background: #222;
     color: #eee;
@@ -114,21 +109,20 @@
     border: 1px solid #333;
 }
 
-/* 👤 사용자 메시지 디자인 */
 .message.user {
     background: linear-gradient(135deg, #00d4ff, #0099cc);
     color: #000;
     font-weight: 600;
     border-radius: 20px 20px 5px 20px; /* 오른쪽 아래 뾰족 */
-    text-align: left; /* 글자 자체는 왼쪽 정렬 (가독성 위해) */
+    text-align: left;
 }
 
-/* 6. 자주 묻는 질문 버튼 (알약 모양) */
+/* 6. 버튼 (알약 모양) */
 .quick-reply-container {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 5px;
+    margin-top: 8px;
 }
 
 .quick-reply-btn {
@@ -138,7 +132,7 @@
     padding: 8px 16px;
     font-size: 0.85rem;
     cursor: pointer;
-    border-radius: 50px; /* ⭐ 완전 둥근 알약 모양 */
+    border-radius: 50px;
     transition: all 0.2s;
 }
 
@@ -146,10 +140,9 @@
     background: #00d4ff;
     color: #000;
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 212, 255, 0.3);
 }
 
-/* 7. 입력창 영역 */
+/* 7. 입력창 */
 .chat-input-area {
     display: flex;
     padding: 15px;
@@ -164,7 +157,7 @@
     border: 1px solid #333;
     background: #222;
     color: #fff;
-    border-radius: 30px; /* ⭐ 입력창도 둥글게 */
+    border-radius: 30px;
     margin-right: 10px;
     outline: none;
     transition: 0.3s;
@@ -181,7 +174,7 @@
     background: #00d4ff;
     color: #000;
     border: none;
-    border-radius: 50%; /* ⭐ 전송 버튼도 원형 */
+    border-radius: 50%;
     font-weight: bold;
     cursor: pointer;
     transition: transform 0.2s;

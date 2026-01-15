@@ -29,10 +29,35 @@ public class ProductService {
     private final String uploadPath = "C:/sdp_uploads/";
 
     @Transactional(readOnly = true)
-    public List<ProductDto> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public List<ProductDto> getProductsByUsage(String usage) {
+        List<Product> products;
+
+        // "ALL"이거나 비어있으면 -> 전체 조회
+        if (usage == null || usage.equals("ALL")) {
+            products = productRepository.findAll();
+        } else {
+            // 아니면 -> 해당 용도만 조회 (GAMING, OFFICE 등)
+            products = productRepository.findByUsageType(usage);
+        }
+
+        return products.stream().map(ProductDto::from).toList();
+    }
+    public List<ProductDto> searchProducts(String keyword) {
+        // 1. 아까 만든 리포지토리 메서드로 검색 결과를 가져옴
+        List<Product> products = productRepository.findByNameContainingIgnoreCase(keyword);
+
+        // 2. Entity(원본)를 DTO(포장지)로 변환해서 반환
+        // (기존 getAllProducts 메서드에 있는 변환 로직과 똑같이 맞추면 됩니다!)
+        return products.stream()
+                .map(product -> ProductDto.builder()
+                        .id(product.getId())
+                        .name(product.getName())
+                        .price(product.getPrice())
+                        .description(product.getDescription())
+                        .category(product.getCategory())
+                        .imageFileName(product.getImageFileName())
+                        .build())
+                .toList();
     }
 
     // 1. 제품 생성 메서드 (Category 추가됨)

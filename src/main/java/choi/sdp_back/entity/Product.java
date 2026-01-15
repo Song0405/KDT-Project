@@ -29,6 +29,8 @@ public class Product {
     // ALL, KEYBOARD, PC, MONITOR, ACC 중 하나가 저장됩니다.
     @Column(length = 50)
     private String category;
+    @Column(name = "USAGE_TYPE") // DB 컬럼명과 매칭
+    private String usageType;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductRecommendation> recommendations = new ArrayList<>();

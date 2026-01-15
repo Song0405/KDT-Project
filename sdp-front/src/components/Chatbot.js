@@ -5,7 +5,7 @@ import './Chatbot.css';
 function Chatbot() {
     const [isOpen, setIsOpen] = useState(false);
 
-    // ⭐ [수정 1] 인사말 변경 (철강 -> 컴퓨터 전문가)
+    // ⭐ 컴퓨터 매장 컨셉 인사말
     const [messages, setMessages] = useState([
         {
             text: "SYSTEM ONLINE... ⚡\n안녕하세요! ROOT STATION AI 매니저입니다.\nPC 견적, 호환성, 배송 등 무엇이든 물어보세요. 🖥️",
@@ -16,7 +16,7 @@ function Chatbot() {
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // ⭐ [수정 2] 자주 묻는 질문 버튼 변경 (공장 용어 -> 쇼핑몰 용어)
+    // ⭐ 컴퓨터 관련 질문 버튼
     const quickButtons = [
         "배송 얼마나 걸려? 🚚",
         "윈도우 설치해줘? 💿",
@@ -56,7 +56,7 @@ function Chatbot() {
         setIsLoading(true);
 
         try {
-            // 파이썬 서버로 요청 (포트 5002 확인)
+            // 파이썬 서버로 요청 (5002)
             const response = await axios.post('http://localhost:5002/chat', {
                 message: userMessage
             });
@@ -87,20 +87,8 @@ function Chatbot() {
             {/* 챗봇 윈도우 */}
             {isOpen && (
                 <div className="chat-window">
-                    <div className="chat-header" style={{
-                        background: '#000',
-                        color: '#00d4ff',
-                        padding: '15px',
-                        borderBottom: '1px solid #333',
-                        fontWeight: 'bold',
-                        borderTopLeftRadius: '20px',
-                        borderTopRightRadius: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                    }}>
-                        {/* 헤더 부분도 사이버틱하게 디자인 */}
-                        <span style={{ fontSize: '1.2rem' }}>🤖</span>
+                    <div className="chat-header">
+                        <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>🤖</span>
                         <span>ROOT AI SUPPORT</span>
                     </div>
 
@@ -128,7 +116,11 @@ function Chatbot() {
                             </div>
                         ))}
 
-                        {isLoading && <div className="message bot">분석 중... ⏳</div>}
+                        {isLoading && (
+                            <div className="message-container bot">
+                                <div className="message bot">분석 중... ⏳</div>
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
 

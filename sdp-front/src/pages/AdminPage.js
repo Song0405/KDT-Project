@@ -20,6 +20,12 @@ function AdminPage() {
     const [newNotice, setNewNotice] = useState({ title: '', content: '' });
     const [editingNotice, setEditingNotice] = useState(null);
 
+    const [contacts, setContacts] = useState([]);
+
+    // ✨ [추가] 답변 작성을 위한 상태변수
+    const [activeContactId, setActiveContactId] = useState(null); // 현재 답변 중인 문의글 ID
+    const [replyText, setReplyText] = useState(''); // 답변 내용
+
     const [isLoading, setIsLoading] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -27,6 +33,7 @@ function AdminPage() {
     useEffect(() => {
         fetchProducts();
         fetchNotices();
+        fetchContacts();
     }, []);
 
     const fetchProducts = async () => {
@@ -37,6 +44,37 @@ function AdminPage() {
     const fetchNotices = async () => {
         try { const res = await axios.get(`${API_BASE_URL}/notices`); setNotices(res.data); }
         catch (err) { console.error('공지 로드 실패', err); }
+    };
+
+    const fetchContacts = async () => {
+        try { const res = await axios.get(`${API_BASE_URL}/contact`); setContacts(res.data); }
+        catch (err) { console.error('문의사항 로드 실패', err); }
+    };
+
+    // ✨ [추가] 답변 등록 함수
+    const handleRegisterAnswer = async (id) => {
+        if(!replyText.trim()) return alert("답변 내용을 입력해주세요.");
+
+        try {
+            await axios.put(`${API_BASE_URL}/contact/${id}/answer`, {
+                answer: replyText
+            });
+            alert("✅ 답변이 등록되었습니다.");
+
+            // 상태 초기화 및 목록 새로고침
+            setActiveContactId(null);
+            setReplyText('');
+            fetchContacts();
+        } catch (err) {
+            console.error("답변 등록 실패", err);
+            alert("답변 등록 중 오류가 발생했습니다.");
+        }
+    };
+
+    // ✨ [추가] 답변 작성 모드 시작
+    const startReplying = (contact) => {
+        setActiveContactId(contact.id);
+        setReplyText(contact.answer || ''); // 기존 답변이 있으면 불러오기
     };
 
     // --- 3. 제품 관리 함수 ---
@@ -171,6 +209,68 @@ function AdminPage() {
 
                 {/* 오른쪽 컬럼: 목록 관리 */}
                 <div className="admin-col">
+                    {/* ✨ [수정] 1:1 문의 내역 + 답변 기능 추가 */}
+                    <section className="admin-section">
+                        <h2>📩 1:1 문의 내역 ({contacts.length})</h2>
+                        <div className="vertical-scroll-area">
+                            {contacts.length > 0 ? contacts.map(c => (
+                                <div key={c.id} className="admin-list-card" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '8px', padding: '15px'}}>
+
+                                    {/* 1. 문의 내용 표시 */}
+                                    <div style={{display: 'flex', justifyContent: 'space-between', width: '100%'}}>
+                                        <h4 style={{color: '#00d4ff', margin: 0, fontSize: '1rem'}}>{c.title}</h4>
+                                        <span style={{fontSize: '0.8rem', color: '#666'}}>
+                                            {new Date(c.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <div style={{background: '#111', padding: '10px', borderRadius: '5px', width: '100%', border: '1px solid #333'}}>
+                                        <p style={{color: '#ddd', fontSize: '0.9rem', margin: 0, whiteSpace: 'pre-wrap'}}>{c.content}</p>
+                                    </div>
+                                    <div style={{width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                        <span style={{fontSize: '0.85rem', color: '#888'}}>✍ 작성자: <span style={{color: '#aaa'}}>{c.writer || '익명'}</span></span>
+                                        {/* 답변 완료 뱃지 */}
+                                        {c.answer && activeContactId !== c.id && (
+                                            <span style={{background: '#00d4ff', color: 'black', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold'}}>답변 완료</span>
+                                        )}
+                                    </div>
+
+                                    {/* 2. 관리자 답변 표시 영역 */}
+                                    {c.answer && activeContactId !== c.id && (
+                                        <div style={{marginTop: '10px', width: '100%', background: 'rgba(0, 212, 255, 0.1)', padding: '10px', borderRadius: '5px', borderLeft: '3px solid #00d4ff'}}>
+                                            <h5 style={{margin: '0 0 5px 0', color: '#00d4ff', fontSize: '0.9rem'}}>↳ 관리자 답변:</h5>
+                                            <p style={{color: '#ccc', fontSize: '0.9rem', margin: 0, whiteSpace: 'pre-wrap'}}>{c.answer}</p>
+                                        </div>
+                                    )}
+
+                                    {/* 3. 답변 작성 폼 (편집 모드일 때만 보임) */}
+                                    {activeContactId === c.id ? (
+                                        <div style={{width: '100%', marginTop: '10px', animation: 'fadeIn 0.3s'}}>
+                                            <textarea
+                                                value={replyText}
+                                                onChange={(e) => setReplyText(e.target.value)}
+                                                placeholder="답변 내용을 입력하세요..."
+                                                style={{width: '100%', minHeight: '80px', background: '#222', border: '1px solid #444', color: 'white', padding: '10px', borderRadius: '4px', marginBottom: '8px'}}
+                                            />
+                                            <div style={{display: 'flex', gap: '5px'}}>
+                                                <button onClick={() => handleRegisterAnswer(c.id)} className="btn-save-small">답변 등록</button>
+                                                <button onClick={() => {setActiveContactId(null); setReplyText('');}} className="btn-cancel-small">취소</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // 4. 답변하기 버튼 (편집 모드가 아닐 때)
+                                        <button
+                                            onClick={() => startReplying(c)}
+                                            style={{marginTop: '5px', background: 'none', border: '1px solid #555', color: '#aaa', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'}}
+                                        >
+                                            {c.answer ? '답변 수정하기' : '답변 달기'}
+                                        </button>
+                                    )}
+
+                                </div>
+                            )) : <p className="dim-text">등록된 문의가 없습니다.</p>}
+                        </div>
+                    </section>
+
                     <section className="admin-section list-section">
                         <h2>📦 제품 라이브러리 ({products.length})</h2>
                         <div className="vertical-scroll-area">
