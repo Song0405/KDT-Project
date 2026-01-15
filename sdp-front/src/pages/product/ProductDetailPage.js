@@ -12,7 +12,6 @@ function ProductDetailPage() {
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
 
-    // ⭐ [수정됨] memberId 추가! (이게 있어야 내 주문으로 인식됨)
     const userInfo = {
         memberId: localStorage.getItem('memberId'),
         name: localStorage.getItem('memberName') || 'Unknown Agent',
@@ -38,12 +37,17 @@ function ProductDetailPage() {
         }
 
         try {
+            // ⭐ [수정] 백엔드 DTO에 맞춰 imageFileName 사용
+            const targetImage = product.imageFileName
+                ? (product.imageFileName.startsWith('http') ? product.imageFileName : `${IMAGE_SERVER_URL}/${product.imageFileName}`)
+                : '';
+
             await axios.post('http://localhost:8080/api/cart', {
                 memberName: userInfo.name,
                 productId: product.id,
                 productName: product.name,
                 price: product.price,
-                imageUrl: product.imageUrl ? (product.imageUrl.startsWith('http') ? product.imageUrl : `${IMAGE_SERVER_URL}/${product.imageUrl}`) : ''
+                imageUrl: targetImage // 장바구니엔 완성된 URL로 저장
             });
 
             if(window.confirm('장바구니에 아이템이 추가되었습니다.\n장바구니로 이동하시겠습니까?')) {
@@ -62,8 +66,9 @@ function ProductDetailPage() {
         </div>
     );
 
-    const imgUrl = product.imageUrl
-        ? (product.imageUrl.startsWith('http') ? product.imageUrl : `${IMAGE_SERVER_URL}/${product.imageUrl}`)
+    // ⭐ [수정] 이미지 경로 로직 수정 (imageUrl -> imageFileName)
+    const imgUrl = product.imageFileName
+        ? (product.imageFileName.startsWith('http') ? product.imageFileName : `${IMAGE_SERVER_URL}/${product.imageFileName}`)
         : 'https://via.placeholder.com/600?text=ROOT+STATION+GEAR';
 
     return (
@@ -78,6 +83,7 @@ function ProductDetailPage() {
             </div>
 
             <div className="detail-main-layout">
+                {/* 왼쪽: 이미지 영역 */}
                 <div className="detail-visual-section">
                     <div className="image-frame">
                         <img src={imgUrl} alt={product.name} className="main-gear-img" />
@@ -85,9 +91,13 @@ function ProductDetailPage() {
                     </div>
                 </div>
 
+                {/* 오른쪽: 스펙 영역 */}
                 <div className="detail-specs-section">
                     <div className="specs-header">
-                        <span className="category-label">// {product.category || 'PREMIUM GEAR'}</span>
+                        {/* ⭐ [수정] 용도(Usage)와 카테고리(Category) 함께 표시 */}
+                        <span className="category-label">
+                            [{product.usage || 'GEAR'}] // {product.category || 'PREMIUM'}
+                        </span>
                         <h2 className="gear-title">{product.name}</h2>
                         <div className="gear-price-tag">{Number(product.price).toLocaleString()} KRW</div>
                     </div>
@@ -99,19 +109,17 @@ function ProductDetailPage() {
                         </div>
 
                         <div className="action-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            {/* 1. 결제 버튼 (userInfo에 memberId가 담겨서 넘어감) */}
+                            {/* 결제 버튼 */}
                             <PaymentButton productInfo={product} userInfo={userInfo} />
 
-                            {/* 2. 장바구니 버튼 */}
-                            <button
-                                className="btn-cart-action"
-                                onClick={addToCart}
-                            >
+                            {/* 장바구니 버튼 */}
+                            <button className="btn-cart-action" onClick={addToCart}>
                                 🛒 ADD TO CART (장바구니)
                             </button>
                         </div>
                     </div>
 
+                    {/* AI 추천 섹션 */}
                     {product.recommendations && product.recommendations.length > 0 && (
                         <div className="ai-analysis-box">
                             <div className="ai-header">

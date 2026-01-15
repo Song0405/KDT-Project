@@ -1,17 +1,17 @@
 package choi.sdp_back.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import java.util.ArrayList;
-import java.util.List;
+import lombok.*;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "PRODUCT")
 public class Product {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,15 +23,13 @@ public class Product {
     private String description;
 
     private String imageFileName;
+
     private Integer price;
 
-    // ⭐ 카테고리 필드 추가
-    // ALL, KEYBOARD, PC, MONITOR, ACC 중 하나가 저장됩니다.
     @Column(length = 50)
     private String category;
-    @Column(name = "USAGE_TYPE") // DB 컬럼명과 매칭
-    private String usageType;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ProductRecommendation> recommendations = new ArrayList<>();
+    //  용도 컬럼 (GAMING, OFFICE, WORKSTATION)
+    @Column(length = 50)
+    private String usage;
 }

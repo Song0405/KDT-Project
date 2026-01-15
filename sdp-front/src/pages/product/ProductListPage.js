@@ -1,161 +1,133 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './ProductListPage.css';
+import './ProductListPage.css'; // 스타일 파일 (아까 주신 CSS 사용)
 
-const API_BASE_URL = 'http://localhost:8080/api/products';
+const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
 function ProductListPage() {
-    // 1. 상태 관리 (용도와 카테고리 둘 다 관리)
-    const [products, setProducts] = useState([]);         // 서버에서 받아온 원본 데이터
-    const [filteredProducts, setFilteredProducts] = useState([]); // 화면에 보여줄 최종 데이터
+    const [products, setProducts] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const [activeUsage, setActiveUsage] = useState('ALL');    // 1차 필터: 용도 (GAMING, OFFICE...)
-    const [activeCategory, setActiveCategory] = useState('ALL'); // 2차 필터: 카테고리 (PC, KEYBOARD...)
-    const [searchTerm, setSearchTerm] = useState('');         // 검색어
+    // ⭐ [핵심] 필터 상태 관리
+    // usageFilter: GAMING, OFFICE, WORKSTATION
+    // categoryFilter: KEYBOARD, PC, MONITOR, ACC
+    const [usageFilter, setUsageFilter] = useState('ALL');
+    const [categoryFilter, setCategoryFilter] = useState('ALL');
 
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // 2. 서버에서 데이터 가져오기 (activeUsage가 바뀔 때마다 실행)
+    // 1. 데이터 가져오기 (전체 상품)
     useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            try {
-                // 용도(Usage)에 따라 서버에 요청 (전체 or 특정 용도)
-                const url = activeUsage === 'ALL'
-                    ? API_BASE_URL
-                    : `${API_BASE_URL}?usage=${activeUsage}`;
-
-                const response = await axios.get(url);
-                setProducts(response.data);
-                // 가져온 직후에는 아직 카테고리 필터를 적용하지 않음 (useEffect에서 처리)
-            } catch (err) {
-                console.error("데이터 로드 실패:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchProducts();
-    }, [activeUsage]); // 👈 용도 버튼을 누르면 서버에서 새로 가져옴!
+    }, []);
 
-
-    // 3. 프론트엔드 필터링 (데이터가 변경되거나, 카테고리/검색어가 바뀔 때 실행)
-    useEffect(() => {
-        let result = products;
-
-        // (1) 카테고리 탭 필터링 (KEYBOARD, PC 등)
-        if (activeCategory !== 'ALL') {
-            result = result.filter(p =>
-                p.category && p.category.toUpperCase() === activeCategory.toUpperCase()
-            );
+    const fetchProducts = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/products`);
+            setProducts(res.data);
+        } catch (err) {
+            console.error("상품 목록 로드 실패:", err);
         }
+    };
 
-        // (2) 검색어 필터링
-        if (searchTerm) {
-            result = result.filter(p =>
-                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-        }
+    // ⭐ 2. 교집합(AND) 필터링 로직
+    const filteredProducts = products.filter(p => {
+        // (1) 용도 필터 (DB에 저장된 p.usage 값과 비교)
+        // p.usage가 없을 수도 있으니 안전하게 체크
+        const productUsage = p.usage || 'GAMING'; // 없으면 기본값 처리
+        const matchUsage = (usageFilter === 'ALL') || (productUsage === usageFilter);
 
-        setFilteredProducts(result);
-    }, [products, activeCategory, searchTerm]); // 👈 여기가 핵심!
+        // (2) 카테고리 필터
+        const matchCategory = (categoryFilter === 'ALL') || (p.category === categoryFilter);
 
+        // (3) 검색어 필터
+        const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    if (loading) return <div className="loading-screen">장비 데이터 동기화 중...</div>;
+        // 셋 다 만족해야 함 (AND 조건)
+        return matchUsage && matchCategory && matchSearch;
+    });
 
     return (
         <div className="product-list-wrapper">
-            <header className="list-header">
+            <div className="list-header">
                 <h1 className="list-title">GEAR <span className="highlight">LIBRARY</span></h1>
+                <p className="list-subtitle">당신의 워크스테이션을 완성할 최고의 장비들을 만나보세요.</p>
+            </div>
 
-                <div className="filter-container">
-                    {/* [NEW] 1. 용도 선택 버튼 (상단에 배치) */}
-                    <div className="usage-filter-buttons">
-                        {['ALL', 'GAMING', 'OFFICE', 'EXPERT'].map(usage => (
-                            <button
-                                key={usage}
-                                className={`usage-btn ${activeUsage === usage ? 'active' : ''}`}
-                                onClick={() => {
-                                    setActiveUsage(usage);
-                                    setActiveCategory('ALL'); // 용도 바꾸면 카테고리는 전체로 초기화
-                                }}
-                            >
-                                {usage === 'EXPERT' ? 'WORKSTATION' : usage} {/* 화면엔 멋진 이름으로 */}
-                            </button>
-                        ))}
-                    </div>
+            {/* 필터 & 검색 컨테이너 */}
+            <div className="filter-container">
 
-                    <div className="search-bar" style={{marginTop: '15px'}}>
-                        <input
-                            type="text"
-                            placeholder="찾으시는 장비명을 입력하세요..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    {/* [RESTORED] 2. 기존 카테고리 탭 (하단 탭) */}
-                    <div className="category-tabs">
-                        {['ALL', 'KEYBOARD', 'PC', 'MONITOR', 'ACC'].map(cat => (
-                            <button
-                                key={cat}
-                                className={`cat-tab ${activeCategory === cat ? 'active' : ''}`}
-                                onClick={() => setActiveCategory(cat)}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
+                {/* 1. 용도(Usage) 필터 버튼 (상단) */}
+                <div className="usage-filter-buttons">
+                    {['ALL', 'GAMING', 'OFFICE', 'WORKSTATION'].map(usage => (
+                        <button
+                            key={usage}
+                            className={`usage-btn ${usageFilter === usage ? 'active' : ''}`}
+                            onClick={() => setUsageFilter(usage)}
+                        >
+                            {usage}
+                        </button>
+                    ))}
                 </div>
-            </header>
 
-            {/* 상품 리스트 그리드 */}
+                {/* 검색창 */}
+                <div className="search-bar">
+                    <input
+                        type="text"
+                        placeholder="찾으시는 장비명을 입력하세요..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                {/* 2. 카테고리(Category) 필터 버튼 (하단) */}
+                <div className="category-tabs">
+                    {['ALL', 'KEYBOARD', 'PC', 'MONITOR', 'ACC'].map(cat => (
+                        <button
+                            key={cat}
+                            className={`cat-tab ${categoryFilter === cat ? 'active' : ''}`}
+                            onClick={() => setCategoryFilter(cat)}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* 결과 목록 그리드 */}
             <div className="gear-grid">
                 {filteredProducts.length > 0 ? (
-                    filteredProducts.map(product => (
-                        <div
-                            key={product.id}
-                            className="gear-card"
-                            onClick={() => navigate(`/products/${product.id}`)}
-                        >
+                    filteredProducts.map(p => (
+                        <div key={p.id} className="gear-card" onClick={() => navigate(`/products/${p.id}`)}>
                             <div className="gear-img-container">
                                 <img
-                                    src={product.imageFileName
-                                        ? (product.imageFileName.startsWith('http')
-                                            ? product.imageFileName
-                                            : `${IMAGE_SERVER_URL}/${product.imageFileName}`)
-                                        : 'https://via.placeholder.com/400x300?text=ROOT+STATION'}
-                                    alt={product.name}
+                                    src={`${IMAGE_SERVER_URL}/${p.imageFileName}`}
+                                    alt={p.name}
                                     className="gear-img"
-                                    onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=NO+IMAGE'; }}
+                                    onError={(e) => {e.target.src = 'https://via.placeholder.com/300?text=No+Image'}}
                                 />
                                 <div className="card-overlay">
-                                    <span>VIEW DETAIL</span>
+                                    <span>VIEW DETAILS</span>
                                 </div>
                             </div>
-
                             <div className="gear-content">
-                                {/* 카테고리와 용도를 같이 보여줌 */}
+                                {/* 디버깅용: 실제 적용된 태그 보여주기 */}
                                 <div className="gear-category">
-                                    // {product.usageType || 'GEAR'} &gt; {product.category}
+                                    [{p.usage || 'GAMING'}] {p.category}
                                 </div>
-                                <h3 className="gear-name">{product.name}</h3>
+                                <h3 className="gear-name">{p.name}</h3>
                                 <div className="gear-footer">
-                                    <span className="gear-price">
-                                        {product.price ? product.price.toLocaleString() : 0} KRW
-                                    </span>
-                                    <button className="gear-action-btn">→</button>
+                                    <span className="gear-price">{p.price.toLocaleString()} KRW</span>
+                                    <button className="gear-action-btn">➜</button>
                                 </div>
                             </div>
                         </div>
                     ))
                 ) : (
                     <div className="no-gear-message">
-                        <p>선택하신 조건에 맞는 장비가 없습니다.</p>
+                        <p>해당 조건에 맞는 장비가 없습니다. 📡</p>
                     </div>
                 )}
             </div>
