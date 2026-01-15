@@ -30,7 +30,7 @@ public class ProductRecommendation {
     public ProductRecommendation(Product product, String targetProductName, Long targetProductId, String reason) {
         this.product = product;
         this.targetProductName = targetProductName;
-        this.targetProductId = targetProductId; // ⭐ 저장!
+        this.targetProductId = targetProductId;
         this.reason = reason;
     }
 }
