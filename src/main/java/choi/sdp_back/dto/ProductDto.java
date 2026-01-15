@@ -1,17 +1,33 @@
 package choi.sdp_back.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import choi.sdp_back.entity.Product;
+import lombok.*;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ProductDto {
+
     private Long id;
     private String name;
     private String description;
-    private String imageFileName;
     private Integer price;
-
-    // ⭐ 카테고리 필드 추가 (KEYBOARD, PC, MONITOR, ACC 등)
     private String category;
+    private String imageFileName;
+
+    private String usage;
+
+    public static ProductDto from(Product product) {
+        return ProductDto.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .price(product.getPrice())
+                .description(product.getDescription())
+                .category(product.getCategory())
+                .imageFileName(product.getImageFileName())
+                .usage(product.getUsage()) // ⭐ 여기서 DB 값을 꺼내 담습니다.
+                .build();
+    }
 }
