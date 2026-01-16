@@ -20,9 +20,20 @@ print("⏳ AI 모델 및 데이터 로딩 중...")
 model = SentenceTransformer('jhgan/ko-sroberta-multitask')
 
 try:
-    # CSV 파일 읽기 (인코딩 에러 발생 시 'cp949'로 시도)
-    df = pd.read_csv('company_docs.csv', encoding='utf-8')
-    # 질문(Question)들을 미리 임베딩(벡터화)하여 텐서로 변환
+    # 👇 [수정할 부분 시작] 이 부분을 복사해서 덮어씌우세요!
+
+    # 1. 현재 이 파일(app.py)이 있는 진짜 경로를 찾아냅니다.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 2. 그 경로에 있는 company_docs.csv 파일을 지목합니다.
+    csv_path = os.path.join(base_dir, 'company_docs.csv')
+
+    print(f"📂 파일 찾는 위치: {csv_path}") # 로그로 확인 가능
+
+    # 3. 절대 경로로 파일을 읽어옵니다.
+    df = pd.read_csv(csv_path, encoding='utf-8')
+
+    # 👆 [수정할 부분 끝]
     question_embeddings = model.encode(df['Question'].tolist(), convert_to_tensor=True)
     print(f"✅ 챗봇 데이터 {len(df)}개 로드 완료")
 except Exception as e:
