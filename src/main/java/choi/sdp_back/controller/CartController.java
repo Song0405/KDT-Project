@@ -17,15 +17,24 @@ public class CartController {
     // 1. 장바구니 담기
     @PostMapping
     public String addToCart(@RequestBody Map<String, Object> data) {
+        String memberName = (String) data.get("memberName");
+        Long productId = Long.valueOf(data.get("productId").toString());
+
+        // [중복 체크] 이미 담겨있는지 확인
+        if (cartRepository.existsByMemberNameAndProductId(memberName, productId)) {
+            return "DUPLICATE"; // "이미 있어!" 라는 신호를 보냄
+        }
+
+        // 없다면 저장 진행
         CartItem item = new CartItem();
-        item.setMemberName((String) data.get("memberName"));
-        item.setProductId(Long.valueOf(data.get("productId").toString()));
+        item.setMemberName(memberName);
+        item.setProductId(productId);
         item.setProductName((String) data.get("productName"));
         item.setPrice(Integer.parseInt(data.get("price").toString()));
         item.setImageUrl((String) data.get("imageUrl"));
 
         cartRepository.save(item);
-        return "장바구니 담기 성공";
+        return "SUCCESS"; // "성공했어!"
     }
 
     // 2. 내 장바구니 목록 조회

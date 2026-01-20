@@ -3,13 +3,16 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './CartPage.css';
 
+// ⭐ 서버 주소 상수화 (유지보수 용이성)
+const API_BASE_URL = 'http://localhost:8080/api';
+const AI_SERVER_URL = 'http://localhost:5002';
+
 function CartPage() {
     const navigate = useNavigate();
     const [cartItems, setCartItems] = useState([]);
     const [selectedIds, setSelectedIds] = useState([]);
 
     const userInfo = {
-        // ⭐ [추가됨] 주문 시 '누가 주문했는지(ID)'를 알아야 합니다.
         memberId: localStorage.getItem('memberId'),
         name: localStorage.getItem('memberName'),
         email: localStorage.getItem('memberEmail') || 'test@test.com'
@@ -25,7 +28,7 @@ function CartPage() {
     }, []);
 
     const fetchCart = () => {
-        axios.get(`http://localhost:8080/api/cart?memberName=${userInfo.name}`)
+        axios.get(`${API_BASE_URL}/cart?memberName=${userInfo.name}`)
             .then(res => {
                 setCartItems(res.data);
                 setSelectedIds(res.data.map(item => item.id));
@@ -51,23 +54,72 @@ function CartPage() {
 
     const handleDelete = (id) => {
         if(window.confirm("삭제하시겠습니까?")) {
-            axios.delete(`http://localhost:8080/api/cart/${id}`)
+            axios.delete(`${API_BASE_URL}/cart/${id}`)
                 .then(() => fetchCart());
         }
     };
 
     const selectedItems = cartItems.filter(item => selectedIds.includes(item.id));
     const totalPrice = selectedItems.reduce((acc, item) => acc + item.price, 0);
+
+    // 주문명 생성 로직
     const orderName = selectedItems.length > 1
         ? `${selectedItems[0].productName} 외 ${selectedItems.length - 1}건`
         : (selectedItems[0] ? selectedItems[0].productName : "");
 
-    const requestPay = () => {
+    // ⭐ [핵심 수정] 결제 요청 함수 (AI 검사 로직 추가)
+    const requestPay = async () => {
         if (selectedItems.length === 0) {
             alert("결제할 상품을 선택해주세요.");
             return;
         }
 
+        // ---------------------------------------------------------
+        // 🤖 [AI 지갑 지킴이] 과소비/중복 구매 방지 로직 시작
+        // ---------------------------------------------------------
+        try {
+            console.log("🤖 AI 지갑 지킴이 작동 중...");
+
+            // 1. 내 과거 주문 내역 가져오기 (Spring Boot)
+            const historyRes = await axios.get(`${API_BASE_URL}/shop-orders?memberId=${userInfo.memberId}`);
+            // 과거 주문한 상품명 리스트 추출
+            const pastOrders = historyRes.data.map(order => order.productName);
+
+            // 2. 현재 장바구니에 담긴 상품명 리스트 추출
+            const currentItemsNames = selectedItems.map(item => item.productName);
+
+            // 3. 파이썬 AI 서버에게 비교 요청
+            // (app.py의 /check-consumption 엔드포인트가 리스트 형태 입력을 받도록 수정되어 있어야 함)
+            const aiRes = await axios.post(`${AI_SERVER_URL}/check-consumption`, {
+                current: currentItemsNames,
+                past_orders: pastOrders
+            });
+
+            // 4. AI가 "경고(warning)"를 보냈는지 확인
+            if (aiRes.data.isOverConsumption) {
+                // 경고창 띄우기
+                const userConfirmed = window.confirm(
+                    `🤖 [AI 지갑 지킴이 경고]\n\n${aiRes.data.reason}\n\n그래도 결제를 진행하시겠습니까?`
+                );
+
+                // 사용자가 "취소"를 누르면 결제 중단 (지갑 방어 성공)
+                if (!userConfirmed) {
+                    console.log("사용자가 AI의 조언을 듣고 결제를 취소했습니다.");
+                    return;
+                }
+            } else {
+                console.log("AI 검사 통과: 과소비 위험 없음 ✅");
+            }
+
+        } catch (err) {
+            // AI 서버가 꺼져있거나 에러가 나도 결제는 막지 않음 (서비스 연속성)
+            console.error("AI 검사 중 오류 발생 (결제는 계속 진행됩니다):", err);
+        }
+        // ---------------------------------------------------------
+        // 🤖 [AI 지갑 지킴이] 로직 끝
+        // ---------------------------------------------------------
+
+        // 여기서부터는 기존 결제 로직 (PortOne)
         const { IMP } = window;
         IMP.init('imp44181766');
 
@@ -83,8 +135,9 @@ function CartPage() {
 
         IMP.request_pay(data, async (response) => {
             if (response.success) {
+                // 일괄 저장을 위한 데이터 준비
                 const orderDataList = selectedItems.map(item => ({
-                    memberId: userInfo.memberId, // 👈 여기가 핵심입니다.
+                    memberId: userInfo.memberId,
                     memberName: userInfo.name,
                     productName: item.productName,
                     price: item.price,
@@ -92,12 +145,12 @@ function CartPage() {
                 }));
 
                 try {
-                    // 1. 주문 내역 저장
-                    await axios.post('http://localhost:8080/api/shop-orders/batch', orderDataList);
+                    // 1. 주문 내역 일괄 저장
+                    await axios.post(`${API_BASE_URL}/shop-orders/batch`, orderDataList);
 
                     // 2. 결제된 아이템 장바구니에서 삭제
                     for (const id of selectedIds) {
-                        await axios.delete(`http://localhost:8080/api/cart/${id}`);
+                        await axios.delete(`${API_BASE_URL}/cart/${id}`);
                     }
 
                     alert("결제가 완료되었습니다!");

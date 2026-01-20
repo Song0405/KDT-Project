@@ -10,4 +10,7 @@ public interface CartRepository extends JpaRepository<CartItem, Long> {
 
     // 장바구니 비우기 (결제 완료 후 사용)
     void deleteByMemberName(String memberName);
+
+    // 중복 검사용: "이 사람 이름으로 + 이 상품 ID가 이미 있니?"
+    boolean existsByMemberNameAndProductId(String memberName, Long productId);
 }

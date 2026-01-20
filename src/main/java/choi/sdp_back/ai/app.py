@@ -282,5 +282,46 @@ def search_image():
         print(f"Image Search Error: {e}")
         return jsonify({"status": "error", "msg": str(e)})
 
+# ==========================================
+# [기능 5] 과소비/중복 구매 방지 (지갑 지킴이)
+# ==========================================
+@app.route('/check-consumption', methods=['POST'])
+def check_consumption():
+    data = request.json
+    current_input = data.get('current', [])       # 장바구니에 담긴 물건들 (문자열 또는 리스트)
+    past_orders = data.get('past_orders', [])     # 과거에 샀던 물건들
+
+    if not past_orders:
+        return jsonify({'status': 'safe', 'msg': '첫 구매이시군요! 안심하고 구매하세요.'})
+
+    # 1. 입력값이 하나(문자열)면 리스트로 감싸서 처리 (호환성 유지)
+    if isinstance(current_input, str):
+        current_list = [current_input]
+    else:
+        current_list = current_input
+
+    # 2. 장바구니 물건 하나하나 꺼내서 검사
+    for new_item in current_list:
+        new_emb = model.encode(new_item)
+
+        for past_item in past_orders:
+            past_emb = model.encode(past_item)
+            score = util.cos_sim(new_emb, past_emb).item()
+
+            # 유사도가 70% 넘으면 즉시 경고 (하나라도 걸리면 잡는다)
+            if score >= 0.7:
+                return jsonify({
+                    'status': 'warning',
+                    'isOverConsumption': True,
+                    'reason': f"장바구니에 있는 '{new_item}' 제품이\n과거에 구매한 '{past_item}'과 {int(score*100)}% 유사합니다.\n\n중복 투자가 아닌지 확인해보세요!"
+                })
+
+    # 3. 전부 통과하면 안전
+    return jsonify({
+        'status': 'safe',
+        'isOverConsumption': False,
+        'msg': '합리적인 소비입니다!'
+    })
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002)

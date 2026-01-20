@@ -4,7 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './ProductDetailPage.css';
 import PaymentButton from '../../components/PaymentButton';
 
-const API_BASE_URL = 'http://localhost:8080/api/products';
+// ⭐ [수정 1] 주소를 더 유연하게 쓰기 위해 '/api'까지만 잡습니다.
+const BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
 function ProductDetailPage() {
@@ -20,7 +21,8 @@ function ProductDetailPage() {
     };
 
     useEffect(() => {
-        axios.get(`${API_BASE_URL}/${id}`)
+        // ⭐ [수정 2] BASE_URL을 사용해 제품 상세 조회
+        axios.get(`${BASE_URL}/products/${id}`)
             .then(res => setProduct(res.data))
             .catch(err => {
                 alert("장비 정보를 찾을 수 없습니다.");
@@ -37,25 +39,38 @@ function ProductDetailPage() {
         }
 
         try {
-            // ⭐ [수정] 백엔드 DTO에 맞춰 imageFileName 사용
             const targetImage = product.imageFileName
                 ? (product.imageFileName.startsWith('http') ? product.imageFileName : `${IMAGE_SERVER_URL}/${product.imageFileName}`)
                 : '';
 
-            await axios.post('http://localhost:8080/api/cart', {
+            // ⭐ [핵심 수정] 서버로 요청 보내기 (경로: /api/cart)
+            const res = await axios.post(`${BASE_URL}/cart`, {
                 memberName: userInfo.name,
                 productId: product.id,
                 productName: product.name,
                 price: product.price,
-                imageUrl: targetImage // 장바구니엔 완성된 URL로 저장
+                imageUrl: targetImage
             });
 
-            if(window.confirm('장바구니에 아이템이 추가되었습니다.\n장바구니로 이동하시겠습니까?')) {
-                navigate('/cart');
+            // ⭐ [핵심 수정] 서버의 응답(DUPLICATE vs SUCCESS)을 구분해서 처리
+            if (res.data === "DUPLICATE") {
+                // 이미 있을 때
+                const move = window.confirm("이미 장바구니에 담긴 상품입니다.\n장바구니로 이동하시겠습니까?");
+                if (move) {
+                    navigate('/cart');
+                }
+            } else {
+                // 성공했을 때 (SUCCESS)
+                const move = window.confirm("장바구니에 상품을 담았습니다.\n확인하러 가시겠습니까?");
+                if (move) {
+                    navigate('/cart');
+                }
             }
+
         } catch (err) {
             console.error(err);
-            alert('장바구니 담기 실패: 서버 오류가 발생했습니다.');
+            // 서버가 500 에러 등을 냈을 때
+            alert('장바구니 담기 실패: 서버와 통신 중 오류가 발생했습니다.');
         }
     };
 
@@ -66,7 +81,6 @@ function ProductDetailPage() {
         </div>
     );
 
-    // ⭐ [수정] 이미지 경로 로직 수정 (imageUrl -> imageFileName)
     const imgUrl = product.imageFileName
         ? (product.imageFileName.startsWith('http') ? product.imageFileName : `${IMAGE_SERVER_URL}/${product.imageFileName}`)
         : 'https://via.placeholder.com/600?text=ROOT+STATION+GEAR';
@@ -94,7 +108,6 @@ function ProductDetailPage() {
                 {/* 오른쪽: 스펙 영역 */}
                 <div className="detail-specs-section">
                     <div className="specs-header">
-                        {/* ⭐ [수정] 용도(Usage)와 카테고리(Category) 함께 표시 */}
                         <span className="category-label">
                             [{product.usage || 'GEAR'}] // {product.category || 'PREMIUM'}
                         </span>
