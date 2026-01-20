@@ -1,20 +1,39 @@
+/* SearchBar.css */
+
 /* 전체 컨테이너 */
 .search-container {
-    position: relative; /* 검색 결과창 위치 잡기 위해 필요 */
+    position: relative;
     text-align: center;
     width: 100%;
-    max-width: 500px; /* 검색창 최대 너비 */
-    margin: 0 auto;   /* 중앙 정렬 */
+    max-width: 600px; /* 너비 조금 늘림 */
+    margin: 0 auto;
+}
+
+/* 폼 정렬 (Flexbox 사용) */
+.search-form {
+    display: flex; /* 가로 정렬 */
+    gap: 10px;     /* 입력창과 버튼 사이 간격 */
+    align-items: center;
+    justify-content: center;
+}
+
+/* ✨ [신규] 입력창 래퍼 (입력창 + 카메라 아이콘을 묶는 상자) */
+.input-wrapper {
+    position: relative; /* 자식(카메라)의 기준점 */
+    flex: 1; /* 남은 공간 모두 차지 */
+    display: flex;
+    align-items: center;
 }
 
 /* 검색 입력창 */
 .search-input {
+    width: 100%; /* 래퍼 안을 가득 채움 */
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid #00f2ff; /* 네온 블루 */
     color: white;
     padding: 12px 20px;
+    padding-right: 50px; /* ✨ 오른쪽 끝에 카메라 들어갈 공간 확보 */
     font-size: 16px;
-    width: 70%;
     border-radius: 30px;
     outline: none;
     transition: 0.3s;
@@ -24,18 +43,39 @@
     box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
 }
 
+/* ✨ [수정] 카메라 버튼 위치 조정 */
+.btn-camera {
+    position: absolute;
+    right: 15px; /* 입력창 오른쪽 끝에서 15px 떨어짐 */
+    top: 50%;
+    transform: translateY(-50%); /* 수직 중앙 정렬 */
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: 0.3s;
+    color: #00f2ff;
+    z-index: 10;
+    padding: 0;
+}
+
+.btn-camera:hover {
+    transform: translateY(-50%) scale(1.2); /* 호버 시 살짝 커짐 */
+    text-shadow: 0 0 10px #00d4ff;
+}
+
 /* 검색 버튼 */
 .search-button {
     background: #00f2ff;
     border: none;
     color: black;
     padding: 12px 25px;
-    margin-left: 10px;
     border-radius: 30px;
     cursor: pointer;
     font-weight: bold;
     font-size: 14px;
     transition: 0.3s;
+    white-space: nowrap; /* 글자 줄바꿈 방지 */
 }
 
 .search-button:hover {
@@ -44,30 +84,29 @@
     transform: scale(1.05);
 }
 
-/* 검색 결과 드롭다운 (중요!) */
+/* 검색 결과 드롭다운 */
 .search-results-dropdown {
     position: absolute;
-    top: 110%; /* 검색창 바로 아래 */
+    top: 110%;
     left: 0;
     right: 0;
     background: rgba(20, 20, 20, 0.95);
     border: 1px solid #333;
-    border-radius: 10px;
-    z-index: 1000; /* 다른 요소보다 위에 뜨게 */
+    border-radius: 8px;
     max-height: 300px;
-    overflow-y: auto; /* 결과 많으면 스크롤 */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    text-align: left;
 }
 
-/* 결과 아이템 하나하나 */
 .search-result-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 15px 20px;
+    padding: 12px 15px;
     border-bottom: 1px solid #333;
     cursor: pointer;
     transition: 0.2s;
-    color: #eee;
+    display: flex;
+    align-items: center;
 }
 
 .search-result-item:last-child {
@@ -75,14 +114,20 @@
 }
 
 .search-result-item:hover {
-    background: rgba(0, 242, 255, 0.1); /* 마우스 올리면 살짝 파란빛 */
+    background: #00d4ff;
+    color: black;
 }
 
 .result-name {
     font-weight: bold;
+    display: block;
 }
 
 .result-price {
-    color: #00f2ff;
-    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #ccc; /* 기본 가격 색상 */
+}
+
+.search-result-item:hover .result-price {
+    color: #333; /* 호버 시 가격 색상 */
 }

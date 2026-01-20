@@ -12,7 +12,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:///C:/sdp_uploads/");
+                .addResourceLocations("file:///C:/uploads/");
     }
 
     // CORS 허용 설정

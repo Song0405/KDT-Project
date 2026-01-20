@@ -5,12 +5,13 @@ import './AdminPage.css';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
+const AI_SERVER_URL = 'http://localhost:5002'; // 🐍 파이썬 주소 추가
 
 function AdminPage() {
     // --- 1. 상태 관리 ---
     const [products, setProducts] = useState([]);
 
-    // ⭐ [수정] usage(용도) 상태 추가 (기본값: GAMING)
+    // ⭐ [수정] usage(용도) 상태 (기존 코드 유지)
     const [newProduct, setNewProduct] = useState({
         name: '', description: '', price: '',
         category: 'KEYBOARD',
@@ -53,6 +54,32 @@ function AdminPage() {
         catch (err) { console.error('문의사항 로드 실패', err); }
     };
 
+    // 🕵️‍♂️ [핵심 추가] AI 짝퉁(유사 이미지) 검사 함수
+    const checkImageDuplicate = async (file) => {
+        if (!file) return { isDuplicate: false };
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // 파이썬 서버(/search-image)로 전송
+            const res = await axios.post(`${AI_SERVER_URL}/search-image`, formData);
+
+            if (res.data.status === 'success' && res.data.is_duplicate) {
+                return {
+                    isDuplicate: true,
+                    msg: res.data.duplicate_msg // "기존 상품과 98% 유사함"
+                };
+            }
+            return { isDuplicate: false };
+
+        } catch (err) {
+            console.error("AI 검사 에러:", err);
+            alert("⚠️ AI 서버 연결 실패! (유사도 검사를 건너뜁니다)");
+            return { isDuplicate: false };
+        }
+    };
+
     // 답변 등록
     const handleRegisterAnswer = async (id) => {
         if(!replyText.trim()) return alert("답변 내용을 입력해주세요.");
@@ -65,39 +92,71 @@ function AdminPage() {
         } catch (err) { alert("답변 등록 실패"); }
     };
 
-    // --- 3. 제품 등록/수정/삭제 ---
+    // --- 3. 제품 등록 (AI 검사 적용) ---
     const handleAddProduct = async (e) => {
         e.preventDefault();
+
+        if (!newProductFile) {
+            alert("이미지를 등록해주세요.");
+            return;
+        }
+
         setIsLoading(true);
+
+        // 🛑 [Step 1] AI에게 먼저 검사받기
+        const aiCheck = await checkImageDuplicate(newProductFile);
+
+        if (aiCheck.isDuplicate) {
+            setIsLoading(false);
+            // 🚨 유사 상품 발견! 저장 중단
+            alert(`🚨 [등록 차단] 유사 상품이 감지되었습니다!\n\n사유: ${aiCheck.msg}\n\n위조 상품 등록은 불가능합니다.`);
+            return;
+        }
+
+        // ✅ [Step 2] 통과하면 Spring 서버에 저장
         const formData = new FormData();
         formData.append("product", new Blob([JSON.stringify(newProduct)], { type: "application/json" }));
-        if (newProductFile) formData.append("image", newProductFile);
+        formData.append("image", newProductFile);
 
         try {
             await axios.post(`${API_BASE_URL}/products`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             alert('✅ 제품 등록 완료!');
-            // ⭐ 초기화 시 usage도 초기화
+            // 초기화
             setNewProduct({ name: '', description: '', price: '', category: 'KEYBOARD', usage: 'GAMING' });
             setNewProductFile(null);
             fetchProducts();
-        } catch (err) { alert('등록 실패'); }
-        finally { setIsLoading(false); }
+        } catch (err) {
+            console.error(err);
+            alert('등록 실패');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const startEditingProduct = (product) => {
-        // ⭐ 기존 데이터에 usage가 없으면 기본값 'GAMING' 부여
         setEditingProduct({ ...product, usage: product.usage || 'GAMING' });
-        setEditingProductFile(null); // 이미지 파일 초기화
+        setEditingProductFile(null);
     };
 
-    // ✨ 제품 수정 함수 (이미지 포함)
+    // --- 제품 수정 (AI 검사 적용) ---
     const handleUpdateProduct = async (e) => {
         e.preventDefault();
         setIsUpdating(true);
+
+        // 🛑 [Step 1] 이미지가 바뀌었다면 AI 검사 수행
+        if (editingProductFile) {
+            const aiCheck = await checkImageDuplicate(editingProductFile);
+            if (aiCheck.isDuplicate) {
+                setIsUpdating(false);
+                alert(`🚨 [수정 차단] 유사 상품이 감지되었습니다!\n\n사유: ${aiCheck.msg}`);
+                return;
+            }
+        }
+
+        // ✅ [Step 2] 저장 진행
         const formData = new FormData();
         formData.append("product", new Blob([JSON.stringify(editingProduct)], { type: "application/json" }));
 
-        // 새 이미지가 있으면 추가
         if (editingProductFile) {
             formData.append("image", editingProductFile);
         }
@@ -120,15 +179,10 @@ function AdminPage() {
         catch (err) { alert('삭제 실패'); }
     };
 
-    // --- 4. 공지사항 관리 ---
+    // --- 4. 공지사항 관리 (기존 유지) ---
     const handleAddNotice = async (e) => {
         e.preventDefault();
         try { await axios.post(`${API_BASE_URL}/notices`, newNotice); alert('공지 등록 완료'); setNewNotice({ title: '', content: '' }); fetchNotices(); }
-        catch (err) { alert('실패'); }
-    };
-    const handleUpdateNotice = async (e) => {
-        e.preventDefault();
-        try { await axios.put(`${API_BASE_URL}/notices/${editingNotice.id}`, editingNotice); alert('공지 수정 완료'); setEditingNotice(null); fetchNotices(); }
         catch (err) { alert('실패'); }
     };
     const deleteNotice = async (id) => {
@@ -150,7 +204,7 @@ function AdminPage() {
                         <h2>✨ 신규 제품 등록</h2>
                         <form onSubmit={handleAddProduct} className="admin-form">
 
-                            {/* ⭐ [추가] 용도(USAGE) 선택 드롭다운 */}
+                            {/* 용도 (USAGE) 선택 */}
                             <div className="input-group-field">
                                 <label style={{color:'#00d4ff'}}>용도 (USAGE)</label>
                                 <select
@@ -169,6 +223,7 @@ function AdminPage() {
                                 <label>카테고리</label>
                                 <select className="admin-select" value={newProduct.category} onChange={(e)=>setNewProduct({...newProduct, category: e.target.value})}>
                                     <option value="KEYBOARD">KEYBOARD</option>
+                                    <option value="MOUSE">MOUSE</option>
                                     <option value="PC">PC</option>
                                     <option value="MONITOR">MONITOR</option>
                                     <option value="ACC">ACC</option>
@@ -178,12 +233,16 @@ function AdminPage() {
                             <input type="text" placeholder="이름" value={newProduct.name} onChange={(e)=>setNewProduct({...newProduct, name: e.target.value})} required />
                             <textarea placeholder="설명" value={newProduct.description} onChange={(e)=>setNewProduct({...newProduct, description: e.target.value})} required />
                             <input type="number" placeholder="가격" value={newProduct.price} onChange={(e)=>setNewProduct({...newProduct, price: e.target.value})} required />
+
                             <div className="custom-file-upload">
-                                <label htmlFor="file-add">📸 제품 이미지</label>
+                                <label htmlFor="file-add">📸 제품 이미지 (AI 검수)</label>
                                 <input id="file-add" type="file" onChange={(e)=>setNewProductFile(e.target.files[0])} />
                                 {newProductFile && <span className="file-name">{newProductFile.name}</span>}
                             </div>
-                            <button type="submit" className="btn-submit-ai" disabled={isLoading}>{isLoading ? '등록 중...' : '등록'}</button>
+
+                            <button type="submit" className="btn-submit-ai" disabled={isLoading}>
+                                {isLoading ? 'AI 분석 중... 🕵️' : '등록'}
+                            </button>
                         </form>
                     </section>
 
@@ -237,7 +296,6 @@ function AdminPage() {
                                 <div key={p.id} className="admin-list-card">
                                     <img src={`${IMAGE_SERVER_URL}/${p.imageFileName}`} alt="" className="list-thumb" onError={(e)=>e.target.src='https://via.placeholder.com/50'}/>
                                     <div className="list-info">
-                                        {/* ⭐ 목록에서도 [용도] [카테고리] 순으로 보여줍니다 */}
                                         <h4>
                                             <span style={{color:'#00d4ff', fontSize:'0.8rem', marginRight:'5px'}}>[{p.usage}]</span>
                                             <span style={{color:'#aaa', fontSize:'0.8rem'}}>[{p.category}]</span>
@@ -256,14 +314,13 @@ function AdminPage() {
                 </div>
             </div>
 
-            {/* ✨ [수정 팝업창] 이미지 및 용도 수정 기능 포함 */}
+            {/* ✨ [수정 팝업창] */}
             {editingProduct && (
                 <div className="edit-overlay">
                     <div className="edit-modal">
                         <h3>제품 상세 정보 수정</h3>
                         <form onSubmit={handleUpdateProduct} className="admin-form">
 
-                            {/* ⭐ [추가] 수정 시 용도 변경 */}
                             <label style={{color:'#00d4ff'}}>용도 (USAGE)</label>
                             <select
                                 className="admin-select"
@@ -279,6 +336,7 @@ function AdminPage() {
                             <label>카테고리</label>
                             <select className="admin-select" value={editingProduct.category} onChange={(e)=>setEditingProduct({...editingProduct, category: e.target.value})}>
                                 <option value="KEYBOARD">KEYBOARD</option>
+                                <option value="MOUSE">MOUSE</option>
                                 <option value="PC">PC</option>
                                 <option value="MONITOR">MONITOR</option>
                                 <option value="ACC">ACC</option>
@@ -289,7 +347,7 @@ function AdminPage() {
                             <input type="number" value={editingProduct.price} onChange={(e)=>setEditingProduct({...editingProduct, price: e.target.value})} placeholder="가격" />
 
                             <div style={{marginTop: '15px', border: '1px dashed #444', padding: '10px', borderRadius: '6px'}}>
-                                <label style={{marginBottom: '10px', display: 'block', color:'#ccc'}}>제품 이미지 변경</label>
+                                <label style={{marginBottom: '10px', display: 'block', color:'#ccc'}}>제품 이미지 변경 (AI 검수됨)</label>
 
                                 {/* 미리보기 화면 */}
                                 <div style={{width: '100%', height: '150px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px', borderRadius: '4px'}}>
@@ -309,7 +367,9 @@ function AdminPage() {
                             </div>
 
                             <div className="form-actions">
-                                <button type="submit" className="btn-primary" disabled={isUpdating}>{isUpdating ? '저장 중...' : '저장하기'}</button>
+                                <button type="submit" className="btn-primary" disabled={isUpdating}>
+                                    {isUpdating ? 'AI 분석 중...' : '저장하기'}
+                                </button>
                                 <button type="button" className="btn-cancel" onClick={() => setEditingProduct(null)}>취소</button>
                             </div>
                         </form>

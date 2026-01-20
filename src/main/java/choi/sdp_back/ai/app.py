@@ -11,7 +11,7 @@ import os
 import random
 
 app = Flask(__name__)
-CORS(app) # 모든 도메인에서의 요청 허용 (Spring Boot와의 통신을 위해 필수)
+CORS(app) # 모든 도메인에서의 요청 허용
 
 # ==========================================
 # 1. 챗봇 모델 및 데이터 로드 (SBERT)
@@ -20,14 +20,14 @@ print("⏳ AI 모델 및 데이터 로딩 중...")
 model = SentenceTransformer('jhgan/ko-sroberta-multitask')
 
 try:
-    # CSV 파일 읽기 (인코딩 에러 발생 시 'cp949'로 시도)
-    df = pd.read_csv('company_docs.csv', encoding='utf-8')
-    # 질문(Question)들을 미리 임베딩(벡터화)하여 텐서로 변환
+    # 현재 파일 위치 기준으로 csv 파일 찾기
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(base_dir, 'company_docs.csv')
+    df = pd.read_csv(csv_path, encoding='utf-8')
     question_embeddings = model.encode(df['Question'].tolist(), convert_to_tensor=True)
     print(f"✅ 챗봇 데이터 {len(df)}개 로드 완료")
 except Exception as e:
     print(f"❌ 챗봇 데이터 로드 실패: {e}")
-    # 실패해도 서버가 죽지 않도록 빈 데이터프레임 생성
     df = pd.DataFrame(columns=['Question', 'Answer'])
     question_embeddings = None
 
@@ -38,48 +38,86 @@ known_face_encodings = []
 known_face_names = []
 
 def load_admin_faces():
-    # 관리자 사진이 저장된 폴더 경로 (프로젝트 구조에 따라 수정 필요)
-    # 기본적으로 sdp-back 루트의 admins 폴더를 찾습니다.
+    # 관리자 사진 폴더 경로 (상황에 맞게 수정 가능)
     admin_path = "../../admins"
-
     if not os.path.exists(admin_path):
-        if os.path.exists("admins"):
-            admin_path = "admins"
-        else:
-            print(f"⚠️ 경고: 관리자 사진 폴더('{admin_path}')를 찾을 수 없습니다.")
-            return
+        if os.path.exists("admins"): admin_path = "admins"
+        else: return
 
     files = os.listdir(admin_path)
-    print(f"🔄 관리자 얼굴 학습 중... (총 {len(files)}장)")
-
     count = 0
     for file in files:
         if file.endswith((".jpg", ".png", ".jpeg")):
             try:
                 img_path = os.path.join(admin_path, file)
                 image = face_recognition.load_image_file(img_path)
-
-                # 이미지에서 얼굴 특징점 추출
                 encodings = face_recognition.face_encodings(image)
-
                 if encodings:
                     known_face_encodings.append(encodings[0])
-                    # 파일명에서 확장자 제거 후 이름으로 사용 (예: admin.jpg -> admin)
                     name = os.path.splitext(file)[0]
                     known_face_names.append(name)
-                    print(f"  - 학습 완료: {name}")
                     count += 1
-                else:
-                    print(f"  - ❌ 얼굴 감지 실패 (사람이 없거나 너무 작음): {file}")
-            except Exception as e:
-                print(f"  - ❌ 파일 로드 에러 ({file}): {e}")
-    print(f"✅ 총 {count}명의 관리자 얼굴 학습 완료!")
+            except Exception: pass
+    print(f"✅ 관리자 얼굴 {count}명 로드 완료")
 
-# 서버 시작 시 얼굴 로드 함수 실행
 try:
     load_admin_faces()
 except Exception as e:
-    print(f"❌ 얼굴 인식 모듈 초기화 실패: {e}")
+    print(f"❌ 얼굴 인식 초기화 실패: {e}")
+
+
+# ==========================================
+# 3. [핵심] 상품 이미지 특징점 로드 (Image Search Engine) 👁️
+#    - chapter14_local_features.py 의 ORB 개념 적용
+# ==========================================
+product_features = [] # [{ "filename": "mouse.jpg", "descriptors": des }, ...]
+
+# ORB 검출기 생성 (특징점 1000개 추출)
+orb = cv2.ORB_create(nfeatures=1000)
+
+def load_product_features():
+    # ⭐ [중요] 실제 이미지가 저장된 경로 (WebConfig와 일치시킴)
+    upload_path = "C:/uploads"
+
+    if not os.path.exists(upload_path):
+        print(f"⚠️ 경고: 상품 이미지 폴더('{upload_path}')가 없습니다. 이미지 검색 기능을 사용할 수 없습니다.")
+        return
+
+    files = os.listdir(upload_path)
+    print(f"🔄 상품 이미지 특징점 추출 중... (대상 폴더: {upload_path})")
+
+    count = 0
+    for file in files:
+        if file.lower().endswith((".jpg", ".png", ".jpeg", ".bmp")):
+            try:
+                img_path = os.path.join(upload_path, file)
+
+                # 1. 이미지 읽기 (Grayscale)
+                # 특징점 추출은 흑백 이미지에서 수행하는 것이 정석입니다.
+                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+                if img is None: continue
+
+                # 2. ORB 특징점 및 기술자 계산
+                # detectAndCompute는 키포인트(위치)와 기술자(지문 데이터)를 반환합니다.
+                kp, des = orb.detectAndCompute(img, None)
+
+                if des is not None:
+                    product_features.append({
+                        "filename": file,
+                        "descriptors": des
+                    })
+                    count += 1
+            except Exception as e:
+                print(f"  - ❌ 특징점 추출 실패 ({file}): {e}")
+
+    print(f"✅ 총 {count}개 상품의 시각적 특징(Visual Features) 학습 완료!")
+
+# 서버 시작 시 상품 특징점 로드 실행
+try:
+    load_product_features()
+except Exception as e:
+    print(f"❌ 이미지 검색 엔진 초기화 실패: {e}")
 
 
 # ==========================================
@@ -89,27 +127,16 @@ except Exception as e:
 def chat():
     data = request.json
     user_query = data.get('message')
+    if not user_query: return jsonify({"response": "질문을 입력해주세요."})
 
-    if not user_query:
-        return jsonify({"response": "질문을 입력해주세요."})
-
-    # 사용자 질문을 벡터로 변환
     query_embedding = model.encode(user_query, convert_to_tensor=True)
-
-    # 코사인 유사도 계산
     cos_scores = util.cos_sim(query_embedding, question_embeddings)[0]
     best_match_idx = torch.argmax(cos_scores).item()
     best_score = cos_scores[best_match_idx].item()
 
-    # 터미널에 로그 출력 (디버깅용)
-    print(f"[Chat] 질문: {user_query} | 유사도: {best_score:.4f} | 매칭: {df.iloc[best_match_idx]['Question']}")
-
-    # 유사도 기준점 (Threshold) 설정 (0.55 미만이면 모르는 질문 취급)
     if best_score < 0.55:
-        return jsonify({"response": "죄송합니다, 아직 학습되지 않은 내용입니다. 😓\n고객센터로 문의 부탁드립니다."})
-
-    answer = df.iloc[best_match_idx]['Answer']
-    return jsonify({"response": answer})
+        return jsonify({"response": "죄송합니다, 학습되지 않은 내용입니다."})
+    return jsonify({"response": df.iloc[best_match_idx]['Answer']})
 
 
 # ==========================================
@@ -119,106 +146,141 @@ def chat():
 def verify_face():
     try:
         data = request.json
-        image_data = data.get('image') # React에서 보낸 Base64 이미지
+        image_data = data.get('image')
+        if not image_data: return jsonify({"status": "fail", "msg": "이미지 데이터 없음"})
 
-        if not image_data:
-            return jsonify({"status": "fail", "msg": "이미지 데이터가 없습니다."})
-
-        # Base64 디코딩 -> OpenCV 포맷으로 변환
         encoded_data = image_data.split(',')[1]
         nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-        # 얼굴 인식 라이브러리는 RGB를 사용하므로 BGR -> RGB 변환
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        # 화면에서 얼굴 위치 찾기
         face_locations = face_recognition.face_locations(rgb_frame)
-        # 찾은 위치의 얼굴 특징 추출
         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
-        if not face_encodings:
-            return jsonify({"status": "fail", "msg": "얼굴을 찾을 수 없습니다."})
+        if not face_encodings: return jsonify({"status": "fail", "msg": "얼굴 감지 실패"})
 
-        # 등록된 관리자 얼굴들과 비교
         for face_encoding in face_encodings:
-            # tolerance: 낮을수록 엄격함 (0.4 ~ 0.5 추천)
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.45)
             face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-
             if len(face_distances) > 0:
                 best_match_index = np.argmin(face_distances)
                 if matches[best_match_index]:
-                    name = known_face_names[best_match_index]
-                    return jsonify({"status": "success", "msg": f"환영합니다, {name} 관리자님!"})
-
-        return jsonify({"status": "fail", "msg": "등록되지 않은 관리자입니다."})
-
+                    return jsonify({"status": "success", "msg": f"환영합니다 {known_face_names[best_match_index]}님!"})
+        return jsonify({"status": "fail", "msg": "등록되지 않은 관리자"})
     except Exception as e:
-        print(f"Face Error: {e}")
-        return jsonify({"status": "error", "msg": "서버 오류가 발생했습니다."})
+        return jsonify({"status": "error", "msg": str(e)})
 
 
 # ==========================================
-# API 3: AI 상품 추천 (/recommend) - NEW! 🌟
+# API 3: AI 상품 추천 (/recommend)
 # ==========================================
 @app.route('/recommend', methods=['POST'])
 def recommend():
     try:
         data = request.json
-        # Spring Boot에서 보내준 데이터
-        target_name = data.get('targetName')       # 예: 로지텍 G Pro
-        target_category = data.get('targetCategory')  # 예: MOUSE
-        target_usage = data.get('targetUsage')        # 예: GAMING
-        candidates = data.get('candidates')        # 같은 용도(GAMING)의 전체 상품 리스트
-
-        print(f"🔍 [추천 요청] 상품: {target_name} ({target_category}/{target_usage}) | 후보군: {len(candidates)}개")
+        target_name = data.get('targetName')
+        target_category = data.get('targetCategory')
+        target_usage = data.get('targetUsage')
+        candidates = data.get('candidates')
 
         recommendations = []
-
-        # 1. 교차 판매(Cross-Selling) 로직:
-        # "같은 카테고리"는 추천에서 제외합니다. (마우스 사는데 마우스 추천 X)
         valid_candidates = [c for c in candidates if c['category'] != target_category]
+        if not valid_candidates: return jsonify({"status": "fail", "recommendations": []})
 
-        # 2. 후보가 없으면 빈 리스트 반환
-        if not valid_candidates:
-            print("   -> 추천할 적합한 후보가 없음 (모두 같은 카테고리거나 데이터 부족)")
-            return jsonify({"status": "fail", "recommendations": []})
+        selected_items = random.sample(valid_candidates, min(3, len(valid_candidates)))
 
-        # 3. 랜덤으로 3개 선택 (데이터가 많아지면 여기서 SBERT 유사도 등을 활용 가능)
-        selected_count = min(3, len(valid_candidates))
-        selected_items = random.sample(valid_candidates, selected_count)
-
-        # 4. 추천 멘트 생성 (용도별 템플릿 적용)
         for item in selected_items:
-            reason = ""
-
-            # 용도(Usage)에 따른 감성 멘트 생성
-            if target_usage == 'GAMING':
-                reason = f"🚀 {target_name}의 퍼포먼스를 극대화할 수 있는 최고의 게이밍 파트너입니다."
-            elif target_usage == 'OFFICE':
-                reason = f"💼 {target_name}와(과) 함께라면 업무 효율이 배가 되는 최적의 조합입니다."
-            elif target_usage == 'WORKSTATION':
-                reason = f"⚡ 전문가의 작업 환경을 완성하는 완벽한 호환성을 자랑합니다."
-            else:
-                reason = f"✨ {target_name}와(과) 함께 사용하면 더욱 만족스러운 {item['name']}입니다."
-
+            reason = f"🚀 {target_name}와(과) 함께 사용하면 최적의 효율을 내는 {target_usage} 장비입니다."
             recommendations.append({
                 "targetProductId": item['id'],
                 "targetProductName": item['name'],
                 "reason": reason
             })
-
-        print(f"   -> ✅ 추천 완료: {len(recommendations)}개 생성")
         return jsonify({"status": "success", "recommendations": recommendations})
-
     except Exception as e:
-        print(f"Recommend Error: {e}")
         return jsonify({"status": "error", "msg": str(e)})
 
+
 # ==========================================
-# 서버 실행
+# [NEW] API 4: 이미지 검색 & 짝퉁 감지 (/search-image) 🔍
+#    - chapter14의 Feature Matching 기술 활용
 # ==========================================
+@app.route('/search-image', methods=['POST'])
+def search_image():
+    try:
+        # 1. 프론트엔드에서 보낸 파일 받기
+        if 'image' not in request.files:
+            return jsonify({"status": "error", "msg": "이미지 파일이 없습니다."})
+
+        file = request.files['image']
+        img_bytes = file.read()
+
+        # 2. 이미지 디코딩 (Grayscale)
+        nparr = np.frombuffer(img_bytes, np.uint8)
+        query_img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
+
+        if query_img is None:
+            return jsonify({"status": "error", "msg": "이미지 변환 실패"})
+
+        # 3. 업로드된 이미지의 특징점 추출 (ORB)
+        kp_query, des_query = orb.detectAndCompute(query_img, None)
+
+        if des_query is None:
+            return jsonify({"status": "fail", "msg": "이미지에서 특징을 찾을 수 없습니다."})
+
+        # 4. 매칭 시작 (BFMatcher - Hamming 거리 사용)
+        # crossCheck=True를 사용하면 양방향으로 매칭되는 신뢰도 높은 점들만 남깁니다.
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+        results = []
+
+        # 미리 로드해둔 상품들과 비교
+        for prod in product_features:
+            if prod['descriptors'] is None: continue
+
+            try:
+                # 두 이미지의 특징점 매칭
+                matches = bf.match(des_query, prod['descriptors'])
+
+                # 매칭된 점의 개수가 곧 유사도 점수 (Score)
+                score = len(matches)
+
+                # 점수가 0점이면 제외
+                if score > 0:
+                    results.append({
+                        "filename": prod['filename'],
+                        "score": score
+                    })
+            except Exception:
+                continue
+
+        # 5. 점수 높은 순으로 정렬 (내림차순)
+        results.sort(key=lambda x: x['score'], reverse=True)
+
+        # 상위 5개만 자르기
+        top_results = results[:5]
+
+        # 6. 유사도 판단 (짝퉁 방지용 로직)
+        # 매칭 점수가 150점 이상이면 매우 유사하다고 판단 (이 값은 테스트하면서 조정 가능)
+        is_duplicate = False
+        duplicate_msg = ""
+
+        # 1등이 있고, 그 점수가 150점 이상이면 '중복'으로 판정
+        if top_results and top_results[0]['score'] > 150:
+            is_duplicate = True
+            duplicate_msg = f"기존 상품('{top_results[0]['filename']}')과 이미지가 {top_results[0]['score']}점 만큼 유사합니다."
+
+        return jsonify({
+            "status": "success",
+            "results": top_results,
+            "is_duplicate": is_duplicate,
+            "duplicate_msg": duplicate_msg,
+            "msg": "이미지 분석 완료"
+        })
+
+    except Exception as e:
+        print(f"Image Search Error: {e}")
+        return jsonify({"status": "error", "msg": str(e)})
+
 if __name__ == '__main__':
-    # 5002번 포트에서 실행
     app.run(host='0.0.0.0', port=5002)
