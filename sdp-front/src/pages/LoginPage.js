@@ -1,84 +1,90 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import './LoginPage.css';
+import axios from 'axios';
+import '../pages/order/Order.css';
 
 function LoginPage({ setIsAuthenticated }) {
-    const [inputs, setInputs] = useState({ memberId: '', password: '' });
     const navigate = useNavigate();
-
-    const handleChange = (e) => setInputs({ ...inputs, [e.target.name]: e.target.value });
+    const [inputId, setInputId] = useState('');
+    const [inputPw, setInputPw] = useState('');
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        if(!inputs.memberId || !inputs.password) {
-            alert("아이디와 비밀번호를 모두 입력해주세요.");
+        if (!inputId || !inputPw) {
+            alert('아이디와 비밀번호를 모두 입력해주세요.');
             return;
         }
+
         try {
-            const response = await fetch('http://localhost:8080/api/members/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs),
+            const response = await axios.post('http://localhost:8080/api/members/login', {
+                memberId: inputId,
+                password: inputPw
             });
-            if (response.ok) {
-                const data = await response.json();
-                localStorage.setItem("memberId", data.memberId);
-                localStorage.setItem("memberType", data.type);
-                localStorage.setItem("memberName", data.name);
+
+            if (response.status === 200) {
+                // ⭐ [여기가 핵심!]
+                // 서버 응답과 상관없이, 내가 방금 입력한 '영어 아이디'를 저장해야 합니다.
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('memberId', inputId); // tmdxo0527 저장됨
+
+                // 이름은 서버에서 준 걸로 저장 (없으면 아이디로 대체)
+                // 보통 response.data.name 에 '임승태'가 들어있습니다.
+                const serverName = response.data.name || response.data.memberName || inputId;
+                localStorage.setItem('memberName', serverName);
+
                 setIsAuthenticated(true);
-                alert(`환영합니다, ${data.name}님!`);
+                alert(`${serverName}님 환영합니다!`);
                 navigate('/');
-            } else {
-                alert("로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.");
             }
         } catch (error) {
-            alert("서버 연결에 실패했습니다. 관리자에게 문의하세요.");
+            console.error("로그인 실패:", error);
+            alert('로그인 실패: 아이디와 비밀번호를 확인해주세요.');
         }
     };
 
     return (
-        <div className="login-page-wrapper">
-            <div className="login-container">
-                <header className="login-header">
-                    <h2 className="login-title">ROOT STATION</h2>
-                    <p className="login-subtitle">당신의 워크스테이션에 접속하세요</p>
-                </header>
+        <div className="order-manage-wrapper" style={{minHeight: '80vh', display:'flex', alignItems:'center', justifyContent:'center'}}>
+            <div style={{width: '100%', maxWidth: '400px', background: '#111', padding: '40px', borderRadius: '12px', border: '1px solid #333', boxShadow: '0 0 20px rgba(0,0,0,0.5)'}}>
+                <h2 style={{color: 'white', marginBottom: '30px', textAlign: 'center', letterSpacing: '2px'}}>LOGIN</h2>
 
-                <form onSubmit={handleLogin} className="login-form">
-                    <div className="input-group">
-                        <label>ID</label>
-                        <input
-                            name="memberId"
-                            placeholder="아이디 입력"
-                            value={inputs.memberId}
-                            onChange={handleChange}
-                            className="login-input"
-                        />
-                    </div>
-                    <div className="input-group">
-                        <label>PASSWORD</label>
-                        <input
-                            type="password"
-                            name="password"
-                            placeholder="비밀번호 입력"
-                            value={inputs.password}
-                            onChange={handleChange}
-                            className="login-input"
-                        />
-                    </div>
-                    <button type="submit" className="login-btn">ACCESS CORE</button>
+                <form onSubmit={handleLogin} style={{display:'flex', flexDirection:'column', gap:'15px'}}>
+                    <input
+                        type="text"
+                        placeholder="ID"
+                        value={inputId}
+                        onChange={(e) => setInputId(e.target.value)}
+                        style={inputStyle}
+                    />
+                    <input
+                        type="password"
+                        placeholder="PASSWORD"
+                        value={inputPw}
+                        onChange={(e) => setInputPw(e.target.value)}
+                        style={inputStyle}
+                    />
+                    <button type="submit" style={loginBtnStyle}>
+                        ACCESS SYSTEM
+                    </button>
                 </form>
 
-                <div className="login-footer">
-                    <div className="footer-links">
-                        <Link to="/members/find" className="login-link">계정 정보를 잊으셨나요?</Link>
-                        <span className="divider">|</span>
-                        <Link to="/members/join" className="login-link highlight">회원가입</Link>
-                    </div>
+                <div style={{marginTop: '20px', textAlign: 'center', fontSize: '0.8rem', color: '#666'}}>
+                    <Link to="/members/find" style={{color: '#888', textDecoration:'none', marginRight:'15px'}}>아이디/비밀번호 찾기</Link>
+                    <Link to="/members/join" style={{color: '#00d4ff', textDecoration:'none'}}>회원가입</Link>
                 </div>
             </div>
         </div>
     );
 }
+
+const inputStyle = {
+    padding: '15px', background: '#000', border: '1px solid #333',
+    color: 'white', borderRadius: '4px', outline: 'none', fontSize: '1rem'
+};
+
+const loginBtnStyle = {
+    padding: '15px', background: '#00d4ff', border: 'none',
+    color: 'black', borderRadius: '4px', cursor: 'pointer',
+    fontWeight: 'bold', fontSize: '1rem', marginTop: '10px'
+};
 
 export default LoginPage;

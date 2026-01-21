@@ -1,178 +1,362 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import './MyPage.css';
 
 function MyPage() {
     const navigate = useNavigate();
-    const storedId = localStorage.getItem("memberId");
-    const storedType = localStorage.getItem("memberType");
-    const [isEditing, setIsEditing] = useState(false);
-    const [myInfo, setMyInfo] = useState(null);
-    const [formData, setFormData] = useState({
-        currentPassword: '', newPassword: '', name: '', phoneNumber: '', email: ''
-    });
+    const hasAlerted = useRef(false);
 
-    // --- 1. 데이터 로드 (컴포넌트 마운트 및 정보 수정 후) ---
+    const [userInfo, setUserInfo] = useState({ name: '', email: '', joinDate: '' });
+    const [rawOrderList, setRawOrderList] = useState([]);
+    const [cartCount, setCartCount] = useState(0);
+
+    // ✨ [추가됨] 친구가 만든 문의 내역 상태 변수
+    const [myContacts, setMyContacts] = useState([]);
+    const [expandedContactId, setExpandedContactId] = useState(null);
+
+    const [expandedOrderId, setExpandedOrderId] = useState(null);
+
+    // 로그인 시 저장해둔 진짜 영어 아이디
+    const realMemberId = localStorage.getItem('memberId');
+
     useEffect(() => {
-        if (!storedId) {
-            navigate('/members/login');
+        const storedName = localStorage.getItem('memberName');
+        const storedEmail = localStorage.getItem('memberEmail') || 'guest@rootstation.com';
+
+        if (!storedName) {
+            if (!hasAlerted.current) {
+                hasAlerted.current = true;
+                alert("로그인이 필요한 서비스입니다.");
+                navigate('/members/login');
+            }
             return;
         }
-        // 사용자 정보 fetch
-        fetch(`http://localhost:8080/api/members/info?memberId=${storedId}&type=${storedType}`)
-            .then(res => res.json())
-            .then(data => {
-                setMyInfo(data);
-                setFormData(prev => ({
-                    ...prev,
-                    name: data.name,
-                    phoneNumber: data.phoneNumber,
-                    email: data.email,
-                    currentPassword: '',
-                    newPassword: ''
-                }));
-            })
-            .catch(err => console.error("데이터 동기화 실패", err));
-    }, [storedId, storedType, navigate]);
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        setUserInfo({
+            name: storedName,
+            joinDate: new Date().toLocaleDateString(),
+            email: storedName === '관리자' ? 'root_admin@server.com' : storedEmail
+        });
+
+        if (storedName !== '관리자') {
+            // 1. [유지] 주문 내역 불러오기 (ID 기준 - 님이 고친 코드)
+            if (realMemberId) {
+                axios.get(`http://localhost:8080/api/shop-orders?memberId=${realMemberId}`)
+                    .then(res => setRawOrderList(res.data))
+                    .catch(err => console.error("주문 내역 로드 실패", err));
+            }
+
+            // 2. 장바구니 개수
+            axios.get(`http://localhost:8080/api/cart?memberName=${storedName}`)
+                .then(res => setCartCount(res.data.length))
+                .catch(err => console.error("장바구니 로드 실패", err));
+
+            // ✨ 3. [추가됨] 문의 내역 불러오기 (친구 코드)
+            axios.get(`http://localhost:8080/api/contact/my/${storedName}`)
+                .then(res => setMyContacts(res.data))
+                .catch(err => console.error("문의 내역 로드 실패", err));
+        }
+
+    }, [navigate, realMemberId]);
+
+    // 주문 내역 그룹화 로직
+    const groupedOrders = useMemo(() => {
+        const groups = {};
+        rawOrderList.forEach(order => {
+            const uid = order.merchantUid;
+            if (!groups[uid]) {
+                groups[uid] = {
+                    merchantUid: uid,
+                    orderDate: order.orderDate,
+                    items: [],
+                    totalPrice: 0,
+                    repProductName: order.productName
+                };
+            }
+            groups[uid].items.push(order);
+            groups[uid].totalPrice += order.price;
+        });
+        return Object.values(groups).sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+    }, [rawOrderList]);
+
+    const getDisplayName = (group) => {
+        const count = group.items.length;
+        if (count === 1) return group.repProductName;
+        return `${group.repProductName} 외 ${count - 1}건`;
     };
 
-    // --- 2. 정보 수정 로직 ---
-    const handleUpdate = async () => {
-        if (!formData.currentPassword) {
-            alert("보안을 위해 현재 비밀번호를 입력해주세요.");
+    const toggleOrder = (uid) => {
+        if (expandedOrderId === uid) {
+            setExpandedOrderId(null);
+        } else {
+            setExpandedOrderId(uid);
+        }
+    };
+
+    // ✨ [추가됨] 문의글 토글 함수
+    const toggleContact = (id) => {
+        setExpandedContactId(expandedContactId === id ? null : id);
+    };
+
+    const getStatusText = (status) => {
+        switch (status) {
+            case 'ORDERED': return '주문 접수';
+            case 'MANUFACTURING': return '제작 중';
+            case 'QUALITY_CHECK': return '검수 중';
+            case 'SHIPPING': return '배송 중';
+            case 'COMPLETED': return '배송 완료';
+            default: return '접수됨';
+        }
+    };
+
+    const handleInfoChange = () => {
+        if(window.confirm("개인정보(비밀번호 등)를 변경하시겠습니까?")) {
+            navigate('/members/edit');
+        }
+    };
+
+    // [유지] 회원 탈퇴 핸들러 (님이 고친 코드)
+    const handleWithdrawal = async () => {
+        if (!window.confirm("정말로 탈퇴하시겠습니까? \n탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.")) {
             return;
         }
+
+        const password = window.prompt("본인 확인을 위해 비밀번호를 입력해주세요.");
+        if (!password) {
+            return;
+        }
+
         try {
-            const response = await fetch('http://localhost:8080/api/members/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, memberId: storedId, type: storedType }),
+            await axios.post(`http://localhost:8080/api/members/withdraw`, {
+                memberId: realMemberId,
+                currentPassword: password,
+                type: 'individual'
             });
-            if (response.ok) {
-                alert("프로필이 업데이트되었습니다! ✅");
-                setIsEditing(false);
-                window.location.reload();
-            } else {
-                alert(await response.text());
-            }
-        } catch (error) { alert("통신 중 서버 오류가 발생했습니다."); }
+
+            alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
+            localStorage.clear();
+            window.location.href = '/';
+
+        } catch (err) {
+            console.error("탈퇴 처리 실패:", err);
+            const msg = err.response?.data || "탈퇴 처리에 실패했습니다.";
+            alert(msg);
+        }
     };
 
-    // --- 3. 회원 탈퇴 로직 ---
-    const handleWithdraw = async () => {
-        if (!window.confirm("정말로 스테이션을 폐쇄하고 탈퇴하시겠습니까? 😢")) return;
-        const pwd = prompt("보안 확인을 위해 비밀번호를 입력하세요.");
-        if (!pwd) return;
-        try {
-            const response = await fetch('http://localhost:8080/api/members/withdraw', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ memberId: storedId, type: storedType, currentPassword: pwd }),
-            });
-            if (response.ok) {
-                alert("탈퇴 처리가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");
-                localStorage.clear();
-                window.location.href = "/";
-            } else {
-                alert(await response.text());
-            }
-        } catch (error) { alert("오류가 발생했습니다."); }
-    };
+    const isAdmin = userInfo.name === '관리자';
 
-    if (!myInfo) return (
-        <div className="loading-container">
-            <div className="loader"></div>
-            <p>데이터 동기화 중...</p>
-        </div>
-    );
+    if (!userInfo.name) return null;
 
     return (
-        <div className="mypage-page-wrapper">
-            <div className="mypage-container">
-                <header className="mypage-header">
-                    <h2 className="mypage-title">STATION <span className="highlight">PROFILE</span></h2>
-                    <p className="mypage-subtitle">나의 워크스테이션 계정 설정 및 정보를 관리합니다.</p>
-                </header>
+        <div className="mypage-container" style={{ color: 'white', padding: '50px 20px', maxWidth: '800px', margin: '0 auto' }}>
+            <h1 style={{ borderBottom: '2px solid #333', paddingBottom: '20px', marginBottom: '40px' }}>
+                MY PAGE
+            </h1>
 
-                {!isEditing ? (
-                    // --- [조회 모드] ---
-                    <div className="mypage-card view-mode">
-                        <div className="profile-badge">
-                            <span className="user-icon">👤</span>
-                            <div className="badge-text">
-                                <p className="user-name">{myInfo.name}</p>
-                                <p className="user-type">{myInfo.type === 'company' ? '기업 파트너' : '개인 멤버'}</p>
+            <div className="profile-card" style={{ display: 'flex', gap: '30px', alignItems: 'center', background: '#111', padding: '30px', borderRadius: '12px' }}>
+                <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: isAdmin ? '#3B82F6' : '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
+                    {isAdmin ? '🛡️' : '👤'}
+                </div>
+                <div className="profile-info">
+                    <h2 style={{ margin: '0 0 10px 0', fontSize: '1.8rem' }}>
+                        {userInfo.name} <span style={{ fontSize: '1rem', color: isAdmin ? '#3B82F6' : '#888', fontWeight: 'normal' }}>
+                            {isAdmin ? '[ SYSTEM ADMIN ]' : '[ MEMBER ]'}
+                        </span>
+                    </h2>
+                    <p style={{ color: '#888', margin: '5px 0' }}>이메일: {userInfo.email}</p>
+                </div>
+            </div>
+
+            <div className="dashboard-section" style={{ marginTop: '50px' }}>
+                {isAdmin ? (
+                    <div>
+                        <h3 style={{ color: '#3B82F6' }}>🛡️ 관리자 전용 메뉴</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <Link to="/admin" style={adminButtonStyle}>⚙️ 제품 및 공지 관리</Link>
+                            <Link to="/admin/orders" style={adminButtonStyle}>📦 전체 주문 공정 관리</Link>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <div style={cartStatusStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, color: '#bb86fc' }}>🛒 MY SHOPPING CART</h3>
+                                    <p style={{ margin: '5px 0 0 0', color: '#aaa' }}>현재 장바구니에 담긴 아이템</p>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white' }}>{cartCount}</span>
+                                    <span style={{ color: '#666' }}> 개</span>
+                                </div>
                             </div>
+                            <Link to="/cart" style={btnGoCart}>
+                                장바구니 확인하러 가기 →
+                            </Link>
                         </div>
 
-                        <div className="info-grid">
-                            <div className="info-box">
-                                <label>아이디</label>
-                                <p>{myInfo.memberId}</p>
-                            </div>
-                            <div className="info-box">
-                                <label>이메일</label>
-                                <p>{myInfo.email}</p>
-                            </div>
-                            <div className="info-box">
-                                <label>전화번호</label>
-                                <p>{myInfo.phoneNumber}</p>
-                            </div>
-                            {myInfo.businessNumber && (
-                                <div className="info-box accent-box">
-                                    <label>사업자번호</label>
-                                    <p>{myInfo.businessNumber}</p>
+                        {/* ✨ [추가됨] 내가 보낸 문의 섹션 (친구 코드 UI) */}
+                        <h3 style={{marginTop: '50px'}}>📩 내가 보낸 문의 ({myContacts.length}건)</h3>
+                        <div style={{ marginTop: '20px', marginBottom: '50px' }}>
+                            {myContacts.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {myContacts.map((contact) => (
+                                        <div key={contact.id} style={{ background: '#1a1a1a', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>
+                                            <div
+                                                onClick={() => toggleContact(contact.id)}
+                                                style={{
+                                                    padding: '20px',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    cursor: 'pointer',
+                                                    borderLeft: contact.answer ? '4px solid #00d4ff' : '4px solid #555',
+                                                    background: expandedContactId === contact.id ? '#222' : '#1a1a1a',
+                                                    transition: '0.3s'
+                                                }}
+                                            >
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: 'white' }}>
+                                                        {contact.title}
+                                                    </h4>
+                                                    <p style={{ color: '#666', margin: 0, fontSize: '0.8rem' }}>
+                                                        {new Date(contact.createdAt).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                                                    {contact.answer ? (
+                                                        <span style={{background: '#00d4ff', color: 'black', fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold'}}>답변 완료</span>
+                                                    ) : (
+                                                        <span style={{background: '#333', color: '#aaa', fontSize: '0.8rem', padding: '4px 8px', borderRadius: '4px'}}>대기 중</span>
+                                                    )}
+                                                    <span style={{fontSize:'0.8rem', color:'#666'}}>
+                                                        {expandedContactId === contact.id ? '▲' : '▼'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {expandedContactId === contact.id && (
+                                                <div style={{ background: '#000', padding: '20px', borderTop: '1px solid #333', animation: 'slideDown 0.3s ease-out' }}>
+                                                    <div style={{marginBottom: '20px'}}>
+                                                        <p style={{color: '#ddd', fontSize: '0.95rem', lineHeight: '1.5', whiteSpace: 'pre-wrap'}}>{contact.content}</p>
+                                                    </div>
+                                                    {contact.answer && (
+                                                        <div style={{background: 'rgba(0, 212, 255, 0.05)', padding: '15px', borderRadius: '8px', borderLeft: '3px solid #00d4ff'}}>
+                                                            <h5 style={{margin: '0 0 10px 0', color: '#00d4ff', fontSize: '0.9rem'}}>↳ ROOT STATION 고객센터</h5>
+                                                            <p style={{color: '#ccc', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap'}}>
+                                                                {contact.answer}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ background: '#1a1a1a', padding: '30px', textAlign: 'center', borderRadius: '8px', color: '#666' }}>
+                                    <p>작성한 문의 내역이 없습니다.</p>
+                                    <Link to="/contact" style={{ color: '#00d4ff', textDecoration: 'none', fontSize: '0.9rem' }}>1:1 문의하러 가기 &rarr;</Link>
                                 </div>
                             )}
                         </div>
 
-                        <div className="mypage-btn-group">
-                            <button onClick={() => setIsEditing(true)} className="btn-mypage btn-prime">정보 수정</button>
-                            <button onClick={handleWithdraw} className="btn-mypage btn-danger">계정 탈퇴</button>
+                        {/* 최근 주문 내역 (님의 UI 유지) */}
+                        <h3>📦 최근 주문 내역 ({groupedOrders.length}건)</h3>
+                        <div style={{ marginTop: '20px' }}>
+                            {groupedOrders.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {groupedOrders.map((group) => (
+                                        <div key={group.merchantUid} style={{ background: '#1a1a1a', borderRadius: '8px', overflow: 'hidden', border: '1px solid #333' }}>
+                                            <div
+                                                style={{
+                                                    padding: '20px',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    borderLeft: '4px solid #00d4ff',
+                                                    background: expandedOrderId === group.merchantUid ? '#222' : '#1a1a1a',
+                                                    transition: '0.3s',
+                                                    cursor: 'default'
+                                                }}
+                                            >
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'white', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        {getDisplayName(group)}
+                                                        <span
+                                                            onClick={() => toggleOrder(group.merchantUid)}
+                                                            style={{
+                                                                fontSize:'0.8rem', color:'#888', cursor: 'pointer',
+                                                                border: '1px solid #555', padding: '2px 8px',
+                                                                borderRadius: '4px', background: '#000', userSelect: 'none'
+                                                            }}
+                                                        >
+                                                            {expandedOrderId === group.merchantUid ? '▲ 접기' : '▼ 상세보기'}
+                                                        </span>
+                                                    </h4>
+                                                    <p style={{ color: '#888', margin: 0, fontSize: '0.9rem', userSelect: 'text', cursor: 'text' }}>
+                                                        주문번호: <span style={{color: '#00d4ff'}}>{group.merchantUid}</span>
+                                                    </p>
+                                                    <p style={{ color: '#666', margin: 0, fontSize: '0.8rem' }}>
+                                                        {group.orderDate ? new Date(group.orderDate).toLocaleString() : '-'}
+                                                    </p>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#00d4ff' }}>
+                                                        {Number(group.totalPrice).toLocaleString()} 원
+                                                    </div>
+                                                    <div style={{fontSize: '0.8rem', color: '#666'}}>
+                                                        총 {group.items.length}개 품목
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {expandedOrderId === group.merchantUid && (
+                                                <div style={{ background: '#000', padding: '15px 20px', borderTop: '1px solid #333', animation: 'slideDown 0.3s ease-out' }}>
+                                                    {group.items.map((item, idx) => (
+                                                        <div key={item.id} style={{
+                                                            display: 'flex', justifyContent: 'space-between', padding: '12px 0',
+                                                            borderBottom: idx !== group.items.length - 1 ? '1px solid #222' : 'none',
+                                                            color: '#ccc'
+                                                        }}>
+                                                            <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                                                                <span style={{color: '#00d4ff', fontWeight:'bold'}}>•</span>
+                                                                <span>{item.productName}</span>
+                                                            </div>
+                                                            <div style={{display:'flex', gap:'20px', alignItems:'center'}}>
+                                                                <span style={{fontSize:'0.9rem', color: '#888'}}>
+                                                                    {getStatusText(item.status || 'ORDERED')}
+                                                                </span>
+                                                                <span style={{fontWeight:'bold'}}>
+                                                                    {Number(item.price).toLocaleString()} 원
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ background: '#1a1a1a', padding: '40px', textAlign: 'center', borderRadius: '8px', color: '#666' }}>
+                                    <p>최근 주문한 내역이 없습니다.</p>
+                                    <Link to="/products" style={{ color: '#00d4ff', textDecoration: 'none', marginTop: '10px', display: 'inline-block' }}>
+                                        쇼핑하러 가기 &rarr;
+                                    </Link>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                ) : (
-                    // --- [수정 모드] ---
-                    <div className="mypage-card edit-mode">
-                        <h3 className="form-title">환경 설정 수정</h3>
 
-                        <div className="input-row">
-                            <div className="input-group">
-                                <label>성함 / 대표자명</label>
-                                <input name="name" value={formData.name} onChange={handleChange} className="mypage-input" />
-                            </div>
-                        </div>
-
-                        <div className="input-row">
-                            <div className="input-group">
-                                <label>전화번호</label>
-                                <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="mypage-input" />
-                            </div>
-                            <div className="input-group">
-                                <label>이메일</label>
-                                <input name="email" value={formData.email} onChange={handleChange} className="mypage-input" />
-                            </div>
-                        </div>
-
-                        <div className="divider-neon"></div>
-
-                        <div className="input-row">
-                            <div className="input-group">
-                                <label>새 비밀번호 (선택)</label>
-                                <input type="password" name="newPassword" placeholder="변경 시에만 입력" onChange={handleChange} className="mypage-input highlight" />
-                            </div>
-                            <div className="input-group">
-                                <label>현재 비밀번호 (필수) <span className="req">*</span></label>
-                                <input type="password" name="currentPassword" placeholder="현재 비밀번호 입력" onChange={handleChange} className="mypage-input active" />
-                            </div>
-                        </div>
-
-                        <div className="mypage-btn-group">
-                            <button onClick={() => setIsEditing(false)} className="btn-mypage btn-cancel">취소</button>
-                            <button onClick={handleUpdate} className="btn-mypage btn-save">변경사항 저장</button>
+                        <h3 style={{ marginTop: '40px' }}>🔐 개인정보 관리</h3>
+                        <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
+                            <button style={outlineButtonStyle} onClick={handleInfoChange}>
+                                개인정보 변경
+                            </button>
+                            <button style={outlineButtonStyle} onClick={handleWithdrawal}>
+                                회원 탈퇴
+                            </button>
                         </div>
                     </div>
                 )}
@@ -180,5 +364,29 @@ function MyPage() {
         </div>
     );
 }
+
+const adminButtonStyle = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+    background: '#1e293b', color: '#3B82F6', textDecoration: 'none', borderRadius: '8px',
+    fontWeight: 'bold', fontSize: '1.1rem', border: '1px solid #3B82F6', transition: '0.3s'
+};
+
+const cartStatusStyle = {
+    background: 'linear-gradient(45deg, #1a1a1a, #222)',
+    padding: '25px', borderRadius: '12px', marginBottom: '40px',
+    border: '1px solid #333', boxShadow: '0 4px 15px rgba(0,0,0,0.5)'
+};
+
+const btnGoCart = {
+    display: 'block', marginTop: '15px', padding: '12px',
+    background: '#bb86fc', color: '#000', textAlign: 'center',
+    fontWeight: 'bold', borderRadius: '6px', textDecoration: 'none',
+    transition: '0.3s'
+};
+
+const outlineButtonStyle = {
+    padding: '10px 20px', background: 'transparent', border: '1px solid #555',
+    color: '#aaa', borderRadius: '4px', cursor: 'pointer'
+};
 
 export default MyPage;
