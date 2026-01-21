@@ -9,9 +9,13 @@ import base64
 import cv2
 import os
 import random
+import requests
 
 app = Flask(__name__)
-CORS(app) # 모든 도메인에서의 요청 허용
+CORS(app)
+
+# ⭐ 스프링 부트 서버 주소 (로컬 환경)
+SPRING_URL = "http://localhost:8080/api"
 
 # ==========================================
 # 1. 챗봇 모델 및 데이터 로드 (SBERT)
@@ -67,67 +71,108 @@ except Exception as e:
 
 
 # ==========================================
-# 3. [핵심] 상품 이미지 특징점 로드 (Image Search Engine) 👁️
-#    - chapter14_local_features.py 의 ORB 개념 적용
+# 3. 상품 이미지 특징점 로드 (Image Search Engine) 👁️
 # ==========================================
-product_features = [] # [{ "filename": "mouse.jpg", "descriptors": des }, ...]
-
-# ORB 검출기 생성 (특징점 1000개 추출)
+product_features = []
 orb = cv2.ORB_create(nfeatures=1000)
 
 def load_product_features():
-    # ⭐ [중요] 실제 이미지가 저장된 경로 (WebConfig와 일치시킴)
+    # ⭐ [중요] 실제 이미지가 저장된 경로
     upload_path = "C:/uploads"
 
     if not os.path.exists(upload_path):
-        print(f"⚠️ 경고: 상품 이미지 폴더('{upload_path}')가 없습니다. 이미지 검색 기능을 사용할 수 없습니다.")
+        print(f"⚠️ 경고: 상품 이미지 폴더('{upload_path}')가 없습니다.")
         return
 
     files = os.listdir(upload_path)
-    print(f"🔄 상품 이미지 특징점 추출 중... (대상 폴더: {upload_path})")
-
     count = 0
     for file in files:
         if file.lower().endswith((".jpg", ".png", ".jpeg", ".bmp")):
             try:
                 img_path = os.path.join(upload_path, file)
-
-                # 1. 이미지 읽기 (Grayscale)
-                # 특징점 추출은 흑백 이미지에서 수행하는 것이 정석입니다.
                 img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-
                 if img is None: continue
 
-                # 2. ORB 특징점 및 기술자 계산
-                # detectAndCompute는 키포인트(위치)와 기술자(지문 데이터)를 반환합니다.
                 kp, des = orb.detectAndCompute(img, None)
-
                 if des is not None:
                     product_features.append({
                         "filename": file,
                         "descriptors": des
                     })
                     count += 1
-            except Exception as e:
-                print(f"  - ❌ 특징점 추출 실패 ({file}): {e}")
+            except Exception: pass
 
-    print(f"✅ 총 {count}개 상품의 시각적 특징(Visual Features) 학습 완료!")
+    print(f"✅ 총 {count}개 상품 특징점 로드 완료")
 
-# 서버 시작 시 상품 특징점 로드 실행
 try:
     load_product_features()
 except Exception as e:
     print(f"❌ 이미지 검색 엔진 초기화 실패: {e}")
 
 
-# ==========================================
-# API 1: 챗봇 질문 답변 (/chat)
-# ==========================================
+# =========================================================
+# API 1: 챗봇 질문 답변 (DB 연동 + CSV 하이브리드) 🚀
+# =========================================================
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
-    user_query = data.get('message')
+    user_query = data.get('message', '')
     if not user_query: return jsonify({"response": "질문을 입력해주세요."})
+
+    # 1. [배송 조회] (키워드: ord-, mid_, cart_, 주문번호)
+    search_keywords = ["ord-", "mid_", "cart_", "주문번호"]
+
+    if any(k in user_query for k in search_keywords):
+        words = user_query.split()
+        order_id = None
+        for w in words:
+            # 사용자가 입력한 단어 중 cart_, ord_, mid_ 가 포함된 것을 주문번호로 인식
+            if "ord-" in w or "mid_" in w or "cart_" in w:
+                order_id = w
+                break
+
+        if order_id:
+            try:
+                # Spring API 호출 (주문 상태 조회)
+                res = requests.get(f"{SPRING_URL}/shop-orders/status/{order_id}")
+                if res.status_code == 200:
+                    info = res.json()
+                    if info['status'] == 'NOT_FOUND':
+                        return jsonify({"response": f"죄송합니다. 주문번호 '{order_id}'를 찾을 수 없습니다."})
+                    else:
+                        return jsonify({"response": f"📦 고객님의 주문({order_id})은 현재 **[{info['status']}]** 상태입니다.\n({info['msg']})"})
+            except Exception:
+                return jsonify({"response": "배송 정보를 조회하는 중 서버 통신 오류가 발생했습니다."})
+        else:
+            return jsonify({"response": "배송 조회를 위해 'cart_' 또는 'mid_'로 시작하는 정확한 주문번호를 입력해주세요."})
+
+    # 2. [제품 평가 조회] (키워드: 어때, 평가, 리뷰)
+    if any(keyword in user_query for keyword in ["어때", "평가", "리뷰", "반응"]):
+        # 상품명 추출 (간단하게 조사를 지워서 상품명만 남기기)
+        target_product = user_query.replace("어때", "").replace("평가", "").replace("리뷰", "").replace("는", "").replace("가", "").replace("요", "").replace("?", "").strip()
+
+        if target_product:
+            try:
+                # Spring API 호출 (상품명으로 리뷰 통계 조회)
+                res = requests.get(f"{SPRING_URL}/reviews/summary-by-name?productName={target_product}")
+                if res.status_code == 200:
+                    stats = res.json()
+                    if "status" in stats and stats["status"] == "NOT_FOUND":
+                        pass # 상품 없으면 아래 CSV 검색으로 넘김
+                    else:
+                        total = stats.get('totalReviews', 0)
+                        if total == 0:
+                            return jsonify({"response": f"'{target_product}'는 아직 리뷰가 없어요. 첫 번째 리뷰어가 되어보세요!"})
+
+                        top_tags = stats.get('topTags', [])
+                        if top_tags:
+                            tag_text = ", ".join([f"#{t['tag']}" for t in top_tags[:3]])
+                            return jsonify({"response": f"🔍 '{target_product}' 분석 결과입니다.\n총 {total}개의 리뷰가 있으며, 주로 **{tag_text}** 등의 평가가 많습니다!"})
+            except Exception: pass
+
+            # 3. [일반 FAQ] (기존 CSV 검색)
+    if question_embeddings is None:
+        return jsonify({"response": "죄송합니다, 현재 상담이 어렵습니다."})
 
     query_embedding = model.encode(user_query, convert_to_tensor=True)
     cos_scores = util.cos_sim(query_embedding, question_embeddings)[0]
@@ -135,7 +180,8 @@ def chat():
     best_score = cos_scores[best_match_idx].item()
 
     if best_score < 0.55:
-        return jsonify({"response": "죄송합니다, 학습되지 않은 내용입니다."})
+        return jsonify({"response": "죄송합니다, 무슨 말씀인지 잘 모르겠어요. 상품명이나 주문번호(cart_...)를 정확히 말씀해 주시겠어요?"})
+
     return jsonify({"response": df.iloc[best_match_idx]['Answer']})
 
 
@@ -161,11 +207,8 @@ def verify_face():
 
         for face_encoding in face_encodings:
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.45)
-            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-            if len(face_distances) > 0:
-                best_match_index = np.argmin(face_distances)
-                if matches[best_match_index]:
-                    return jsonify({"status": "success", "msg": f"환영합니다 {known_face_names[best_match_index]}님!"})
+            if True in matches:
+                return jsonify({"status": "success", "msg": "환영합니다!"})
         return jsonify({"status": "fail", "msg": "등록되지 않은 관리자"})
     except Exception as e:
         return jsonify({"status": "error", "msg": str(e)})
@@ -202,70 +245,44 @@ def recommend():
 
 
 # ==========================================
-# [NEW] API 4: 이미지 검색 & 짝퉁 감지 (/search-image) 🔍
-#    - chapter14의 Feature Matching 기술 활용
+# API 4: 이미지 검색 & 짝퉁 감지 (/search-image)
 # ==========================================
 @app.route('/search-image', methods=['POST'])
 def search_image():
     try:
-        # 1. 프론트엔드에서 보낸 파일 받기
         if 'image' not in request.files:
             return jsonify({"status": "error", "msg": "이미지 파일이 없습니다."})
 
         file = request.files['image']
         img_bytes = file.read()
-
-        # 2. 이미지 디코딩 (Grayscale)
         nparr = np.frombuffer(img_bytes, np.uint8)
         query_img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
         if query_img is None:
             return jsonify({"status": "error", "msg": "이미지 변환 실패"})
 
-        # 3. 업로드된 이미지의 특징점 추출 (ORB)
         kp_query, des_query = orb.detectAndCompute(query_img, None)
 
         if des_query is None:
             return jsonify({"status": "fail", "msg": "이미지에서 특징을 찾을 수 없습니다."})
 
-        # 4. 매칭 시작 (BFMatcher - Hamming 거리 사용)
-        # crossCheck=True를 사용하면 양방향으로 매칭되는 신뢰도 높은 점들만 남깁니다.
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-
         results = []
 
-        # 미리 로드해둔 상품들과 비교
         for prod in product_features:
             if prod['descriptors'] is None: continue
-
             try:
-                # 두 이미지의 특징점 매칭
                 matches = bf.match(des_query, prod['descriptors'])
-
-                # 매칭된 점의 개수가 곧 유사도 점수 (Score)
                 score = len(matches)
-
-                # 점수가 0점이면 제외
                 if score > 0:
-                    results.append({
-                        "filename": prod['filename'],
-                        "score": score
-                    })
-            except Exception:
-                continue
+                    results.append({"filename": prod['filename'], "score": score})
+            except Exception: continue
 
-        # 5. 점수 높은 순으로 정렬 (내림차순)
         results.sort(key=lambda x: x['score'], reverse=True)
-
-        # 상위 5개만 자르기
         top_results = results[:5]
 
-        # 6. 유사도 판단 (짝퉁 방지용 로직)
-        # 매칭 점수가 150점 이상이면 매우 유사하다고 판단 (이 값은 테스트하면서 조정 가능)
         is_duplicate = False
         duplicate_msg = ""
-
-        # 1등이 있고, 그 점수가 150점 이상이면 '중복'으로 판정
         if top_results and top_results[0]['score'] > 150:
             is_duplicate = True
             duplicate_msg = f"기존 상품('{top_results[0]['filename']}')과 이미지가 {top_results[0]['score']}점 만큼 유사합니다."
@@ -277,38 +294,30 @@ def search_image():
             "duplicate_msg": duplicate_msg,
             "msg": "이미지 분석 완료"
         })
-
     except Exception as e:
-        print(f"Image Search Error: {e}")
         return jsonify({"status": "error", "msg": str(e)})
 
+
 # ==========================================
-# [기능 5] 과소비/중복 구매 방지 (지갑 지킴이)
+# API 5: 과소비 방지 (지갑 지킴이)
 # ==========================================
 @app.route('/check-consumption', methods=['POST'])
 def check_consumption():
     data = request.json
-    current_input = data.get('current', [])       # 장바구니에 담긴 물건들 (문자열 또는 리스트)
-    past_orders = data.get('past_orders', [])     # 과거에 샀던 물건들
+    current_input = data.get('current', [])
+    past_orders = data.get('past_orders', [])
 
     if not past_orders:
         return jsonify({'status': 'safe', 'msg': '첫 구매이시군요! 안심하고 구매하세요.'})
 
-    # 1. 입력값이 하나(문자열)면 리스트로 감싸서 처리 (호환성 유지)
-    if isinstance(current_input, str):
-        current_list = [current_input]
-    else:
-        current_list = current_input
+    if isinstance(current_input, str): current_list = [current_input]
+    else: current_list = current_input
 
-    # 2. 장바구니 물건 하나하나 꺼내서 검사
     for new_item in current_list:
         new_emb = model.encode(new_item)
-
         for past_item in past_orders:
             past_emb = model.encode(past_item)
             score = util.cos_sim(new_emb, past_emb).item()
-
-            # 유사도가 70% 넘으면 즉시 경고 (하나라도 걸리면 잡는다)
             if score >= 0.7:
                 return jsonify({
                     'status': 'warning',
@@ -316,19 +325,12 @@ def check_consumption():
                     'reason': f"장바구니에 있는 '{new_item}' 제품이\n과거에 구매한 '{past_item}'과 {int(score*100)}% 유사합니다.\n\n중복 투자가 아닌지 확인해보세요!"
                 })
 
-    # 3. 전부 통과하면 안전
-    return jsonify({
-        'status': 'safe',
-        'isOverConsumption': False,
-        'msg': '합리적인 소비입니다!'
-    })
+    return jsonify({'status': 'safe', 'isOverConsumption': False, 'msg': '합리적인 소비입니다!'})
+
 
 # ==========================================
-# [기능 6] AI 리뷰 분석기 (Smart Review System)
+# API 6: 리뷰 분석 (AI Sentiment & Tagging)
 # ==========================================
-# 분석할 태그 후보군 (SBERT가 문맥을 읽어서 가장 가까운 걸 고름)
-# 1. 태그 정의 (띄어쓰기 제거함 & 카테고리화)
-# 구조: "카테고리": {"태그명": [예시문장들...]}
 REVIEW_CATEGORIES = {
     "delivery": {
         "배송빠름": ["배송이 빨라요", "하루만에 왔어요", "총알 배송", "일찍 도착"],
@@ -355,7 +357,6 @@ def analyze_review():
     if not content:
         return jsonify({"status": "fail", "msg": "내용 없음"})
 
-    # 1. 감정 분석 (기존 로직 유지)
     pos_anchor = model.encode("정말 좋아요 만족합니다 최고의 제품 추천합니다")
     neg_anchor = model.encode("별로에요 실망입니다 환불하고 싶어요 최악")
     target_emb = model.encode(content)
@@ -364,54 +365,34 @@ def analyze_review():
     neg_score = util.cos_sim(target_emb, neg_anchor).item()
 
     sentiment = "NEUTRAL"
-    if pos_score > neg_score + 0.05:
-        sentiment = "POSITIVE"
-    elif neg_score > pos_score + 0.05:
-        sentiment = "NEGATIVE"
+    if pos_score > neg_score + 0.05: sentiment = "POSITIVE"
+    elif neg_score > pos_score + 0.05: sentiment = "NEGATIVE"
 
-    # 2. 태그 추출 (경쟁 로직 적용 🥊)
     final_tags = []
-
     for category, tags_map in REVIEW_CATEGORIES.items():
         best_tag = None
-        # ⭐ [수정] 임계값을 0.4 -> 0.65 로 대폭 상향!
-        # SBERT 모델 특성상 0.4는 "글의 분위기가 비슷함" 정도고,
-        # 0.6 이상이어야 "내용이 일치함"으로 볼 수 있습니다.
-        best_score = 0.65
-
+        best_score = 0.65 # 임계값 상향 조정됨
         for tag_name, examples in tags_map.items():
             example_embs = model.encode(examples)
             sim_score = util.cos_sim(target_emb, example_embs).max().item()
-
             if sim_score > best_score:
                 best_score = sim_score
                 best_tag = tag_name
+        if best_tag: final_tags.append(best_tag)
 
-        if best_tag:
-            final_tags.append(best_tag)
-
-    # 결과 포장
     formatted_tags = " ".join([f"#{tag}" for tag in final_tags])
+    return jsonify({"status": "success", "sentiment": sentiment, "tags": formatted_tags})
 
-    return jsonify({
-        "status": "success",
-        "sentiment": sentiment,
-        "tags": formatted_tags
-    })
 
 # ==========================================
-# [기능 7] AI 스마트 민원 분류 (Smart Inquiry) 🚨
+# API 7: 스마트 민원 분석 (AI Inquiry Classifier)
 # ==========================================
-
-# 1. 민원 카테고리 정의 (SBERT가 문맥을 읽어서 가장 비슷한 걸 찾음)
 INQUIRY_CATEGORIES = {
     "배송 문의": ["배송이 언제 오나요?", "택배가 안 움직여요", "송장 번호 조회", "배송 지연", "아직도 상품 준비중인가요"],
     "환불/교환": ["환불해 주세요", "물건이 깨져서 왔어요", "반품 신청하고 싶어요", "다른 상품이 왔어요", "파손"],
     "제품 문의": ["이거 재고 있나요?", "스펙이 어떻게 되나요?", "AS 가능한가요?", "호환성 질문"],
     "기타 문의": ["회원 탈퇴 방법", "로그인이 안 돼요", "사이트 오류", "포인트 적립"]
 }
-
-# 2. 긴급 키워드 (이 단어가 포함되면 관리자에게 비상벨을 울림)
 URGENT_KEYWORDS = ["화가", "신고", "사기", "당장", "소비자원", "경찰", "법적", "고발", "최악", "쓰레기"]
 
 @app.route('/analyze-contact', methods=['POST'])
@@ -419,43 +400,31 @@ def analyze_contact():
     data = request.json
     title = data.get('title', '')
     content = data.get('content', '')
-
-    # 제목과 내용을 합쳐서 분석 (정보량이 많을수록 정확함)
     full_text = f"{title} {content}"
 
     if not full_text.strip():
         return jsonify({"status": "fail", "msg": "내용 없음"})
 
-    # 1. 응급도 분석 (키워드 매칭 방식)
-    # 화난 고객의 키워드가 하나라도 있으면 'CRITICAL'로 격상
     priority = "NORMAL"
     detected_urgent_words = []
-
     for keyword in URGENT_KEYWORDS:
         if keyword in full_text:
             priority = "CRITICAL"
             detected_urgent_words.append(keyword)
-            # 하나만 발견돼도 긴급이므로 break 가능하지만, 분석 리포트를 위해 다 찾음
 
-    # 2. 카테고리 자동 분류 (SBERT 유사도 대결)
     best_category = "일반 문의"
     max_score = 0
     target_emb = model.encode(full_text)
 
     for category, examples in INQUIRY_CATEGORIES.items():
         example_embs = model.encode(examples)
-        # 입력된 민원과 카테고리 예시들 간의 유사도 중 최대값
         score = util.cos_sim(target_emb, example_embs).max().item()
-
         if score > max_score:
             max_score = score
             best_category = category
 
-    # 유사도가 너무 낮으면(0.35 미만) 억지로 분류하지 않고 '기타'로 둠
-    if max_score < 0.35:
-        best_category = "기타 문의"
+    if max_score < 0.35: best_category = "기타 문의"
 
-    # 관리자에게 보여줄 AI 한줄 요약
     ai_memo_text = f"[{best_category}] 관련 문의입니다."
     if priority == "CRITICAL":
         ai_memo_text = f"🚨 [긴급] '{detected_urgent_words}' 언급됨! 즉시 대응 필요."
