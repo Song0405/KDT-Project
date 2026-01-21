@@ -20,9 +20,8 @@ public class ProductController {
 
     // 1. 전체 상품 조회
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getProducts(@RequestParam(value = "usage", required = false) String usage) {
-        System.out.println("요청된 카테고리: " + usage); // 로그 확인용
-        return ResponseEntity.ok(productService.getProductsByUsage(usage));
+    public ResponseEntity<List<ProductDto>> getAllProducts() {
+        return ResponseEntity.ok(productService.getAllProducts());
     }
 
     // ⭐ [추가됨] 검색 API (/api/products/search?keyword=...)
@@ -60,10 +59,5 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.ok().build();
-    }
-    @GetMapping("/search")
-    public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam("keyword") String keyword) {
-        System.out.println("🔍 검색 요청 들어옴: " + keyword);
-        return ResponseEntity.ok(productService.searchProducts(keyword));
     }
 }
