@@ -14,18 +14,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000") // ⭐ 1. 이게 있어야 리액트가 접속 가능!
 public class ProductController {
 
     private final ProductService productService;
 
     // 1. 전체 상품 조회
-    @GetMapping
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    @GetMapping // ⭐ 2. 이게 빠져 있어서 작동을 안 했던 겁니다! (기본 주소로 매핑)
+    public ResponseEntity<List<ProductDto>> getAllProducts(
+            @RequestParam(value = "sort", required = false) String sort) {
+
+        // 서비스한테 "이 정렬 순서대로 가져와줘" 라고 시킴
+        return ResponseEntity.ok(productService.getAllProducts(sort));
     }
 
     // ⭐ [추가됨] 검색 API (/api/products/search?keyword=...)
-    // 중요: @GetMapping("/{id}") 보다 위에 있어야 안전합니다!
     @GetMapping("/search")
     public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam("keyword") String keyword) {
         return ResponseEntity.ok(productService.searchProducts(keyword));
