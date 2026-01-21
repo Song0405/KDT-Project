@@ -323,5 +323,149 @@ def check_consumption():
         'msg': '합리적인 소비입니다!'
     })
 
+# ==========================================
+# [기능 6] AI 리뷰 분석기 (Smart Review System)
+# ==========================================
+# 분석할 태그 후보군 (SBERT가 문맥을 읽어서 가장 가까운 걸 고름)
+# 1. 태그 정의 (띄어쓰기 제거함 & 카테고리화)
+# 구조: "카테고리": {"태그명": [예시문장들...]}
+REVIEW_CATEGORIES = {
+    "delivery": {
+        "배송빠름": ["배송이 빨라요", "하루만에 왔어요", "총알 배송", "일찍 도착"],
+        "배송느림": ["배송이 늦어요", "택배가 안와요", "일주일 걸림", "지연"]
+    },
+    "price": {
+        "가성비굿": ["가격이 착해요", "이 가격에 미쳤다", "가성비 최고", "저렴"],
+        "가격비쌈": ["비싸요", "가격 값을 못해요", "너무 비쌈", "바가지"]
+    },
+    "quality": {
+        "품질좋음": ["마감이 좋아요", "튼튼해요", "고급스러워요", "퀄리티"],
+        "마감아쉽": ["기스가 있어요", "마감이 별로", "유격이 있네요", "불량"]
+    },
+    "design": {
+        "디자인예쁨": ["실물이 더 예뻐요", "디자인 깔끔함", "색감이 좋아요", "이뻐요"]
+    }
+}
+
+@app.route('/analyze-review', methods=['POST'])
+def analyze_review():
+    data = request.json
+    content = data.get('content', '')
+
+    if not content:
+        return jsonify({"status": "fail", "msg": "내용 없음"})
+
+    # 1. 감정 분석 (기존 로직 유지)
+    pos_anchor = model.encode("정말 좋아요 만족합니다 최고의 제품 추천합니다")
+    neg_anchor = model.encode("별로에요 실망입니다 환불하고 싶어요 최악")
+    target_emb = model.encode(content)
+
+    pos_score = util.cos_sim(target_emb, pos_anchor).item()
+    neg_score = util.cos_sim(target_emb, neg_anchor).item()
+
+    sentiment = "NEUTRAL"
+    if pos_score > neg_score + 0.05:
+        sentiment = "POSITIVE"
+    elif neg_score > pos_score + 0.05:
+        sentiment = "NEGATIVE"
+
+    # 2. 태그 추출 (경쟁 로직 적용 🥊)
+    final_tags = []
+
+    for category, tags_map in REVIEW_CATEGORIES.items():
+        best_tag = None
+        # ⭐ [수정] 임계값을 0.4 -> 0.65 로 대폭 상향!
+        # SBERT 모델 특성상 0.4는 "글의 분위기가 비슷함" 정도고,
+        # 0.6 이상이어야 "내용이 일치함"으로 볼 수 있습니다.
+        best_score = 0.65
+
+        for tag_name, examples in tags_map.items():
+            example_embs = model.encode(examples)
+            sim_score = util.cos_sim(target_emb, example_embs).max().item()
+
+            if sim_score > best_score:
+                best_score = sim_score
+                best_tag = tag_name
+
+        if best_tag:
+            final_tags.append(best_tag)
+
+    # 결과 포장
+    formatted_tags = " ".join([f"#{tag}" for tag in final_tags])
+
+    return jsonify({
+        "status": "success",
+        "sentiment": sentiment,
+        "tags": formatted_tags
+    })
+
+# ==========================================
+# [기능 7] AI 스마트 민원 분류 (Smart Inquiry) 🚨
+# ==========================================
+
+# 1. 민원 카테고리 정의 (SBERT가 문맥을 읽어서 가장 비슷한 걸 찾음)
+INQUIRY_CATEGORIES = {
+    "배송 문의": ["배송이 언제 오나요?", "택배가 안 움직여요", "송장 번호 조회", "배송 지연", "아직도 상품 준비중인가요"],
+    "환불/교환": ["환불해 주세요", "물건이 깨져서 왔어요", "반품 신청하고 싶어요", "다른 상품이 왔어요", "파손"],
+    "제품 문의": ["이거 재고 있나요?", "스펙이 어떻게 되나요?", "AS 가능한가요?", "호환성 질문"],
+    "기타 문의": ["회원 탈퇴 방법", "로그인이 안 돼요", "사이트 오류", "포인트 적립"]
+}
+
+# 2. 긴급 키워드 (이 단어가 포함되면 관리자에게 비상벨을 울림)
+URGENT_KEYWORDS = ["화가", "신고", "사기", "당장", "소비자원", "경찰", "법적", "고발", "최악", "쓰레기"]
+
+@app.route('/analyze-contact', methods=['POST'])
+def analyze_contact():
+    data = request.json
+    title = data.get('title', '')
+    content = data.get('content', '')
+
+    # 제목과 내용을 합쳐서 분석 (정보량이 많을수록 정확함)
+    full_text = f"{title} {content}"
+
+    if not full_text.strip():
+        return jsonify({"status": "fail", "msg": "내용 없음"})
+
+    # 1. 응급도 분석 (키워드 매칭 방식)
+    # 화난 고객의 키워드가 하나라도 있으면 'CRITICAL'로 격상
+    priority = "NORMAL"
+    detected_urgent_words = []
+
+    for keyword in URGENT_KEYWORDS:
+        if keyword in full_text:
+            priority = "CRITICAL"
+            detected_urgent_words.append(keyword)
+            # 하나만 발견돼도 긴급이므로 break 가능하지만, 분석 리포트를 위해 다 찾음
+
+    # 2. 카테고리 자동 분류 (SBERT 유사도 대결)
+    best_category = "일반 문의"
+    max_score = 0
+    target_emb = model.encode(full_text)
+
+    for category, examples in INQUIRY_CATEGORIES.items():
+        example_embs = model.encode(examples)
+        # 입력된 민원과 카테고리 예시들 간의 유사도 중 최대값
+        score = util.cos_sim(target_emb, example_embs).max().item()
+
+        if score > max_score:
+            max_score = score
+            best_category = category
+
+    # 유사도가 너무 낮으면(0.35 미만) 억지로 분류하지 않고 '기타'로 둠
+    if max_score < 0.35:
+        best_category = "기타 문의"
+
+    # 관리자에게 보여줄 AI 한줄 요약
+    ai_memo_text = f"[{best_category}] 관련 문의입니다."
+    if priority == "CRITICAL":
+        ai_memo_text = f"🚨 [긴급] '{detected_urgent_words}' 언급됨! 즉시 대응 필요."
+
+    return jsonify({
+        "status": "success",
+        "category": best_category,
+        "priority": priority,
+        "ai_memo": ai_memo_text
+    })
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002)

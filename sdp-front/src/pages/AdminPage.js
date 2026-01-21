@@ -262,12 +262,48 @@ function AdminPage() {
                         <h2>📩 1:1 문의 ({contacts.length})</h2>
                         <div className="vertical-scroll-area">
                             {contacts.map(c => (
-                                <div key={c.id} className="admin-list-card" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '8px'}}>
-                                    <div style={{display:'flex', justifyContent:'space-between', width:'100%'}}>
-                                        <h4 style={{color:'#00d4ff', margin:0}}>{c.title}</h4>
-                                        <span style={{fontSize:'0.8rem', color:'#666'}}>{new Date(c.createdAt).toLocaleDateString()}</span>
+                                <div key={c.id}
+                                     className="admin-list-card"
+                                     style={{
+                                         flexDirection: 'column',
+                                         alignItems: 'flex-start',
+                                         gap: '8px',
+                                         // 🚨 [NEW] 응급도에 따라 테두리 색상 변경
+                                         border: c.priority === 'CRITICAL' ? '1px solid #ff4d4d' : '1px solid #333',
+                                         background: c.priority === 'CRITICAL' ? 'rgba(255, 77, 77, 0.05)' : '#1a1a1a'
+                                     }}
+                                >
+                                    <div style={{display:'flex', justifyContent:'space-between', width:'100%', alignItems:'flex-start'}}>
+                                        <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
+                                            <h4 style={{color:'#fff', margin:0, display:'flex', alignItems:'center', gap:'8px'}}>
+                                                {/* 🚨 긴급 뱃지 */}
+                                                {c.priority === 'CRITICAL' && (
+                                                    <span style={{background:'#ff4d4d', color:'white', fontSize:'0.7rem', padding:'2px 6px', borderRadius:'4px'}}>🚨 긴급</span>
+                                                )}
+                                                {/* 🏷️ 카테고리 뱃지 */}
+                                                <span style={{background:'#333', color:'#00d4ff', fontSize:'0.7rem', padding:'2px 6px', borderRadius:'4px', border:'1px solid #00d4ff'}}>
+                                                        {c.category || '일반'}
+                                                    </span>
+                                                {c.title}
+                                            </h4>
+                                            <span style={{fontSize:'0.8rem', color:'#666'}}>{new Date(c.createdAt).toLocaleDateString()}</span>
+                                        </div>
                                     </div>
-                                    <p style={{color:'#ddd', fontSize:'0.9rem'}}>{c.content}</p>
+
+                                    {/* 🤖 [NEW] AI 분석 리포트 */}
+                                    {c.aiMemo && (
+                                        <div style={{
+                                            width: '100%', background: '#222', padding: '8px',
+                                            borderRadius: '4px', fontSize: '0.85rem', color: '#aaa',
+                                            borderLeft: '3px solid #00d4ff', marginBottom: '5px'
+                                        }}>
+                                            🤖 <b>AI Report:</b> {c.aiMemo}
+                                        </div>
+                                    )}
+
+                                    <p style={{color:'#ddd', fontSize:'0.9rem', lineHeight:'1.4'}}>{c.content}</p>
+
+                                    {/* 기존 답변 로직 유지 */}
                                     {c.answer && activeContactId !== c.id && (
                                         <div style={{background:'rgba(0,212,255,0.1)', padding:'10px', width:'100%', borderRadius:'4px', marginTop:'5px'}}>
                                             <p style={{color:'#ccc', margin:0}}>↳ {c.answer}</p>
@@ -275,12 +311,14 @@ function AdminPage() {
                                     )}
                                     {activeContactId === c.id ? (
                                         <div style={{width:'100%', marginTop:'5px'}}>
-                                            <textarea value={replyText} onChange={(e)=>setReplyText(e.target.value)} style={{width:'100%', background:'#222', color:'white'}} placeholder="답변 입력..." />
-                                            <button onClick={()=>handleRegisterAnswer(c.id)} className="btn-save-small">등록</button>
-                                            <button onClick={()=>{setActiveContactId(null); setReplyText('');}} className="btn-cancel-small">취소</button>
+                                            <textarea value={replyText} onChange={(e)=>setReplyText(e.target.value)} style={{width:'100%', background:'#222', color:'white', border:'1px solid #444', padding:'5px'}} placeholder="답변 입력..." />
+                                            <div style={{marginTop:'5px', display:'flex', gap:'5px'}}>
+                                                <button onClick={()=>handleRegisterAnswer(c.id)} className="btn-save-small">등록</button>
+                                                <button onClick={()=>{setActiveContactId(null); setReplyText('');}} className="btn-cancel-small">취소</button>
+                                            </div>
                                         </div>
                                     ) : (
-                                        <button onClick={()=>{setActiveContactId(c.id); setReplyText(c.answer||'');}} style={{background:'none', border:'1px solid #555', color:'#aaa', fontSize:'0.8rem', marginTop:'5px'}}>
+                                        <button onClick={()=>{setActiveContactId(c.id); setReplyText(c.answer||'');}} style={{background:'none', border:'1px solid #555', color:'#aaa', fontSize:'0.8rem', marginTop:'5px', cursor:'pointer', padding:'4px 10px', borderRadius:'4px'}}>
                                             {c.answer ? '답변 수정' : '답변 달기'}
                                         </button>
                                     )}

@@ -30,4 +30,10 @@ public class Review {
 
     @CreationTimestamp
     private LocalDateTime createdDate; // 작성일
+
+    @Column(length = 20)
+    private String sentiment; // 분석 결과: POSITIVE / NEGATIVE
+
+    @Column(length = 200)
+    private String aiTags;    // 분석 결과: #배송빠름 #가성비
 }
