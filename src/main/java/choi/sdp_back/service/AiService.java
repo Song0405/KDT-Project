@@ -1,78 +1,55 @@
 package choi.sdp_back.service;
 
-import choi.sdp_back.dto.OllamaDto;
+import choi.sdp_back.dto.ProductDto;
+import choi.sdp_back.entity.Product;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.List; // ⭐ List import 필수!
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class AiService {
 
-    @Value("${ollama.url}")
-    private String ollamaUrl;
+    // 파이썬 AI 서버 주소
+    private final String AI_SERVER_URL = "http://localhost:5002/recommend";
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${ollama.model}")
-    private String ollamaModel;
-
-    private final RestClient restClient = RestClient.create();
-
-    // ⭐ 파라미터에 'allProductNames' (전체 상품 리스트) 추가
-    public String getRecommendation(String productName, String description, List<String> allProductNames) {
-
-        // 1. 전체 상품 목록을 문자열로 변환 (예: "마우스, 키보드, 모니터")
-        String productListString = String.join(", ", allProductNames);
-
-        // 2. 프롬프트 업그레이드 (예시 추가 + 목록 제한)
-        String prompt = String.format(
-                """
-                당신은 쇼핑몰 추천 AI입니다.
-                
-                [현재 보고 있는 제품]
-                이름: %s
-                설명: %s
-                
-                [우리 쇼핑몰 판매 목록]
-                %s
-                
-                [지시사항]
-                1. 반드시 위 [판매 목록]에 있는 제품 중 하나를 골라 추천하세요. (목록에 없는 것 금지)
-                2. 현재 제품(%s)은 추천하지 마세요.
-                3. 답변은 아래 [예시]와 똑같은 형식으로 작성하세요.
-                
-                [올바른 답변 예시]
-                게이밍 키보드 : 반응 속도가 빨라 게임 환경에 최적화된 제품이라 추천합니다.
-                
-                [잘못된 답변 예시]
-                추천제품명 : 추천하는 이유입니다. (X)
-                """,
-                productName, description, productListString, productName
-        );
-
-        OllamaDto.Request request = new OllamaDto.Request(ollamaModel, prompt, false);
-
+    public List<Map<String, Object>> getRecommendationsFromPython(Product currentProduct, List<Product> candidates) {
         try {
-            OllamaDto.Response response = restClient.post()
-                    .uri(ollamaUrl)
-                    .body(request)
-                    .retrieve()
-                    .body(OllamaDto.Response.class);
+            // 1. 파이썬으로 보낼 데이터 포장
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("targetName", currentProduct.getName());
+            requestBody.put("targetCategory", currentProduct.getCategory());
+            requestBody.put("targetUsage", currentProduct.getUsage()); // 용도 (GAMING 등)
 
-            if (response != null && response.getResponse() != null) {
-                return response.getResponse().trim();
+            // 후보군 리스트 변환 (Entity -> Map)
+            List<Map<String, Object>> candidateList = new ArrayList<>();
+            for (Product p : candidates) {
+                Map<String, Object> pMap = new HashMap<>();
+                pMap.put("id", p.getId());
+                pMap.put("name", p.getName());
+                pMap.put("category", p.getCategory());
+                candidateList.add(pMap);
+            }
+            requestBody.put("candidates", candidateList);
+
+            // 2. 파이썬 서버 호출 (POST)
+            Map<String, Object> response = restTemplate.postForObject(AI_SERVER_URL, requestBody, Map.class);
+
+            // 3. 결과 받아서 리턴
+            if (response != null && "success".equals(response.get("status"))) {
+                return (List<Map<String, Object>>) response.get("recommendations");
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            // 에러 시 목록의 첫 번째 제품이라도 추천 (안전장치)
-            if (!allProductNames.isEmpty()) {
-                return allProductNames.get(0) + " : (AI 연결 불안정으로 자동 추천)";
-            }
+            System.out.println("❌ AI 서버 연결 실패: " + e.getMessage());
         }
-
-        return "추천 제품 없음 : 데이터 부족";
+        return new ArrayList<>(); // 실패 시 빈 리스트 반환
     }
 }

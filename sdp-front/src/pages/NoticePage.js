@@ -38,7 +38,7 @@ function NoticePage() {
                                 className={`notice-title-row ${openId === notice.id ? 'active' : ''}`}
                             >
                                 <div className="notice-title-content">
-                                    <span className="notice-category">// NOTICE</span>
+                                    <span className="notice-category">NOTICE</span>
                                     <span className="notice-title-text">{notice.title}</span>
                                 </div>
                                 <div className="notice-right-info">

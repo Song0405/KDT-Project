@@ -1,10 +1,9 @@
 package choi.sdp_back.controller;
 
 import choi.sdp_back.dto.ProductDto;
-import choi.sdp_back.service.ProductService;
 import choi.sdp_back.dto.ProductResponseDto;
+import choi.sdp_back.service.ProductService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,51 +14,51 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
 public class ProductController {
 
     private final ProductService productService;
 
+    // 1. 전체 상품 조회
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
+    // ⭐ [추가됨] 검색 API (/api/products/search?keyword=...)
+    // 중요: @GetMapping("/{id}") 보다 위에 있어야 안전합니다!
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam("keyword") String keyword) {
+        return ResponseEntity.ok(productService.searchProducts(keyword));
+    }
+
+    // 2. 상품 상세 조회 (ID는 숫자만 받음)
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponseDto> getProductDetail(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductDetail(id));
     }
 
-    @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    // 3. 상품 등록
+    @PostMapping
     public ResponseEntity<ProductDto> createProduct(
             @RequestPart("product") ProductDto productDto,
-            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
-
-        // 🔍 [범인 검거용 로그 1] 컨트롤러에 도착한 데이터 확인
-        System.out.println("=== [POST] 제품 등록 요청 도착 ===");
-        System.out.println("제품명: " + productDto.getName());
-        System.out.println("카테고리: " + productDto.getCategory()); // ⭐ 여기서 null이 찍히면 React 문제입니다.
-
-        return ResponseEntity.ok(productService.createProduct(productDto, image));
+            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+        return ResponseEntity.ok(productService.createProduct(productDto, imageFile));
     }
 
-    @PutMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    // 4. 상품 수정
+    @PutMapping("/{id}")
     public ResponseEntity<ProductDto> updateProduct(
             @PathVariable Long id,
             @RequestPart("product") ProductDto productDto,
-            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
-
-        // 🔍 [범인 검거용 로그 2] 수정 요청 데이터 확인
-        System.out.println("=== [PUT] 제품 수정 요청 도착 (ID: " + id + ") ===");
-        System.out.println("수정될 카테고리: " + productDto.getCategory()); // ⭐ 여기서 null이면 React 수정 로직 문제.
-
-        return ResponseEntity.ok(productService.updateProduct(id, productDto, image));
+            @RequestPart(value = "image", required = false) MultipartFile imageFile) throws IOException {
+        return ResponseEntity.ok(productService.updateProduct(id, productDto, imageFile));
     }
 
+    // 5. 상품 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
     @GetMapping("/search")
     public ResponseEntity<List<ProductDto>> searchProducts(@RequestParam("keyword") String keyword) {
