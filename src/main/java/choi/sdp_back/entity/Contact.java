@@ -33,7 +33,16 @@ public class Contact {
     @CreationTimestamp
     private LocalDateTime createdAt; // 작성 시간 (언제 보냈는지)
 
-    // ✨ [추가된 부분] 관리자 답변
+    //  관리자 답변
     @Column(length = 2000)
     private String answer;
+
+    @Column(length = 50)
+    private String category; // AI가 자동 분류한 카테고리 (예: 배송 문의)
+
+    @Column(length = 20)
+    private String priority; // 중요도 (NORMAL / CRITICAL)
+
+    @Column(length = 500)
+    private String aiMemo;   // 관리자용 AI 분석 리포트
 }

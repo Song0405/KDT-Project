@@ -14,10 +14,11 @@ function ProductDetailPage() {
 
     // 상태 관리
     const [product, setProduct] = useState(null);
-
-    // ⭐ [추가] 리뷰 관련 상태
     const [reviews, setReviews] = useState([]);
     const [newReview, setNewReview] = useState({ content: '', rating: 5 });
+
+    // ⭐ [추가] 통계 데이터 상태
+    const [reviewStats, setReviewStats] = useState(null);
 
     // 사용자 정보
     const userInfo = {
@@ -27,10 +28,11 @@ function ProductDetailPage() {
         tel: localStorage.getItem('memberTel') || '010-0000-0000'
     };
 
-    // 1. 데이터 로드 (상품정보 + 리뷰)
+    // 1. 데이터 로드 (상품정보 + 리뷰 + 통계)
     useEffect(() => {
         fetchProduct();
         fetchReviews();
+        fetchReviewStats();
     }, [id]);
 
     const fetchProduct = () => {
@@ -42,13 +44,22 @@ function ProductDetailPage() {
             });
     };
 
-    // ⭐ [추가] 리뷰 목록 불러오기
     const fetchReviews = async () => {
         try {
             const res = await axios.get(`${BASE_URL}/reviews/${id}`);
             setReviews(res.data);
         } catch (err) {
             console.error("리뷰 로드 실패", err);
+        }
+    };
+
+    // ⭐ [추가] 통계 데이터 가져오는 함수
+    const fetchReviewStats = async () => {
+        try {
+            const res = await axios.get(`${BASE_URL}/reviews/${id}/summary`);
+            setReviewStats(res.data);
+        } catch (err) {
+            console.error("리뷰 통계 로드 실패", err);
         }
     };
 
@@ -87,40 +98,34 @@ function ProductDetailPage() {
         }
     };
 
-    // 리뷰 등록 함수 (수정됨)
+    // 3. 리뷰 등록 함수
     const submitReview = async () => {
-        // 1. 로그인 체크
         if (!userInfo.name || userInfo.name === 'Unknown Agent') {
             alert("로그인이 필요합니다.");
             return;
         }
-        // 2. 빈 내용 체크
         if (!newReview.content.trim()) {
             alert("내용을 입력해주세요.");
             return;
         }
 
         try {
-            // 3. 서버로 전송 (memberId 추가!)
             const res = await axios.post(`${BASE_URL}/reviews`, {
                 productId: id,
-                memberId: userInfo.memberId, // ⭐ [추가됨] 구매 인증을 위해 ID 전송
+                memberId: userInfo.memberId,
                 writer: userInfo.name,
                 content: newReview.content,
                 rating: newReview.rating
             });
 
-            // 4. 응답 처리
             if (res.data === "NOT_PURCHASED") {
-                // 🚨 구매하지 않은 경우
                 alert("⛔ 구매 고객만 리뷰를 작성할 수 있습니다.\n\n(상품을 구매한 후 이용해주세요!)");
             } else if (res.data === "SUCCESS") {
-                // ✅ 성공한 경우
                 alert("리뷰가 등록되었습니다!");
-                setNewReview({ content: '', rating: 5 }); // 입력창 초기화
-                fetchReviews(); // 목록 새로고침
+                setNewReview({ content: '', rating: 5 });
+                fetchReviews();
+                fetchReviewStats(); // 리뷰 등록 후 통계도 갱신
             } else {
-                // 기타 메시지
                 alert(res.data);
             }
 
@@ -130,13 +135,14 @@ function ProductDetailPage() {
         }
     };
 
-    // ⭐ [추가] 리뷰 삭제 함수
+    // 4. 리뷰 삭제 함수
     const deleteReview = async (reviewId) => {
         if (!window.confirm("정말 삭제하시겠습니까?")) return;
         try {
             await axios.delete(`${BASE_URL}/reviews/${reviewId}`);
             alert("삭제되었습니다.");
             fetchReviews();
+            fetchReviewStats(); // 삭제 후 통계 갱신
         } catch (err) {
             alert("삭제 실패");
         }
@@ -226,11 +232,50 @@ function ProductDetailPage() {
                         </div>
                     )}
 
-                    {/* ⭐ [추가됨] 리뷰 섹션 */}
+                    {/* ⭐ [통합됨] 리뷰 섹션 */}
                     <div className="review-section-container" style={{ marginTop: '50px', borderTop: '1px solid #333', paddingTop: '30px' }}>
                         <h3 style={{ fontSize: '1.4rem', marginBottom: '20px', color: '#fff', display:'flex', alignItems:'center', gap:'10px' }}>
                             📋 USER REVIEWS <span style={{ color: '#00d4ff', fontSize: '1rem' }}>({reviews.length})</span>
                         </h3>
+
+                        {/* ⭐⭐⭐ [NEW] AI 리뷰 요약 통계 섹션 ⭐⭐⭐ */}
+                        {reviewStats && reviewStats.topTags.length > 0 && (
+                            <div className="ai-stats-panel" style={{
+                                background: 'linear-gradient(90deg, #111 0%, #0a0a0a 100%)',
+                                border: '1px solid #333',
+                                borderRadius: '12px',
+                                padding: '20px',
+                                marginBottom: '30px',
+                                boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                            }}>
+                                <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'15px'}}>
+                                    <span style={{fontSize:'1.2rem'}}>📊</span>
+                                    <span style={{color:'#fff', fontWeight:'bold', fontSize:'1rem'}}>AI KEYWORD INSIGHT</span>
+                                    <span style={{color:'#666', fontSize:'0.8rem'}}>구매자들이 자주 언급한 키워드입니다.</span>
+                                </div>
+
+                                <div style={{display:'flex', gap:'12px', flexWrap:'wrap'}}>
+                                    {reviewStats.topTags.map((stat, idx) => (
+                                        <div key={idx} style={{
+                                            display:'flex',
+                                            alignItems:'center',
+                                            background: idx === 0 ? 'rgba(0, 212, 255, 0.15)' : '#1a1a1a',
+                                            border: idx === 0 ? '1px solid #00d4ff' : '1px solid #444',
+                                            padding: '8px 16px',
+                                            borderRadius: '20px',
+                                            cursor: 'default'
+                                        }}>
+                                            <span style={{color: idx === 0 ? '#00d4ff' : '#ccc', fontWeight:'bold', marginRight:'8px'}}>
+                                                #{stat.tag}
+                                            </span>
+                                            <span style={{background: idx === 0 ? '#00d4ff' : '#555', color: idx === 0 ? '#000' : '#fff', borderRadius:'10px', padding:'2px 8px', fontSize:'0.75rem', fontWeight:'bold'}}>
+                                                {stat.count}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* 1. 리뷰 작성 폼 */}
                         <div className="review-form" style={{ background: '#111', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #222' }}>
@@ -262,7 +307,7 @@ function ProductDetailPage() {
                             </div>
                         </div>
 
-                        {/* 2. 리뷰 목록 리스트 */}
+                        {/* 2. 리뷰 목록 */}
                         <div className="review-list">
                             {reviews.length > 0 ? (
                                 reviews.map(review => (
@@ -271,24 +316,52 @@ function ProductDetailPage() {
                                             <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
                                                 <span style={{ fontWeight: 'bold', color: '#00d4ff' }}>{review.writer}</span>
                                                 <span style={{ color: '#FFD700', fontSize: '0.9rem' }}>{'★'.repeat(review.rating)}</span>
+
+                                                {/* 🤖 AI 분석 결과 뱃지 */}
+                                                {review.sentiment === 'POSITIVE' && (
+                                                    <span style={{background:'rgba(0, 255, 127, 0.2)', color:'#00ff7f', fontSize:'0.7rem', padding:'2px 6px', borderRadius:'4px', border:'1px solid #00ff7f'}}>
+                                                        😊 긍정적 리뷰
+                                                    </span>
+                                                )}
+                                                {review.sentiment === 'NEGATIVE' && (
+                                                    <span style={{background:'rgba(255, 99, 71, 0.2)', color:'#ff6347', fontSize:'0.7rem', padding:'2px 6px', borderRadius:'4px', border:'1px solid #ff6347'}}>
+                                                        😡 부정적 리뷰
+                                                    </span>
+                                                )}
                                             </div>
                                             <span style={{ color: '#555', fontSize: '0.8rem', fontFamily: 'monospace' }}>
                                                 {new Date(review.createdDate).toLocaleDateString()}
                                             </span>
                                         </div>
-                                        <p style={{ color: '#ddd', lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-line' }}>
+
+                                        <p style={{ color: '#ddd', lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-line', marginBottom:'10px' }}>
                                             {review.content}
                                         </p>
 
-                                        {/* 본인이 쓴 글이면 삭제 버튼 노출 */}
+                                        {/* 🏷️ AI 자동 생성 태그 (수정된 split 로직 적용) */}
+                                        {review.aiTags && (
+                                            <div style={{display:'flex', gap:'8px', flexWrap:'wrap', marginTop:'5px'}}>
+                                                {review.aiTags.split('#').filter(t => t.trim() !== '').map((tag, idx) => (
+                                                    <span key={idx} style={{
+                                                        color: '#00d4ff',
+                                                        background: 'rgba(0, 212, 255, 0.05)',
+                                                        border: '1px solid rgba(0, 212, 255, 0.3)',
+                                                        padding: '4px 10px',
+                                                        borderRadius: '15px',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 'bold',
+                                                        boxShadow: '0 0 5px rgba(0, 212, 255, 0.1)'
+                                                    }}>
+                                                        #{tag.trim()}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* 본인이 쓴 글이면 삭제 버튼 */}
                                         {userInfo.name === review.writer && (
-                                            <div style={{textAlign: 'right'}}>
-                                                <button
-                                                    onClick={() => deleteReview(review.id)}
-                                                    style={{ background: 'none', border: '1px solid #ff4d4d', color: '#ff4d4d', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', marginTop: '5px' }}
-                                                >
-                                                    삭제
-                                                </button>
+                                            <div style={{textAlign: 'right', marginTop: '5px'}}>
+                                                <button onClick={() => deleteReview(review.id)} style={{color:'#ff4d4d', background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem'}}>삭제</button>
                                             </div>
                                         )}
                                     </div>

@@ -2,41 +2,38 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
-import SearchBar from '../components/SearchBar'; // 👈 임포트는 잘 되어 있습니다!
+import SearchBar from '../components/SearchBar';
 
-// 백엔드 API 및 이미지 서버 설정
 const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 
-// 셋업 가이드 데이터
 const processSteps = [
     {
         id: 1,
-        title: "맞춤 큐레이션",
-        icon: "🔍",
-        details: ["사용자 데스크 환경 정밀 분석", "최적의 하이엔드 장비 선별", "최신 데스크테리어 트렌드 반영"]
+        title: "공간 심리 분석",
+        icon: "🧠",
+        details: ["사용자 작업 패턴 정밀 진단", "시각적 노이즈 최소화 설계", "몰입을 위한 최적의 색온도 제안"]
     },
     {
         id: 2,
-        title: "호환성 검토",
-        icon: "⚙️",
-        details: ["하드웨어 간 연결 및 호환성 검증", "데스크 공간 효율 및 동선 계산", "모니터 암 및 거치대 최적 배치"]
+        title: "인체공학적 배치",
+        icon: "📐",
+        details: ["거북목 방지를 위한 시선 설계", "팔꿈치와 무릎의 90도 원칙", "동선을 고려한 장비 위치 최적화"]
     },
     {
         id: 3,
-        title: "개인 커스터마이징",
+        title: "데스크테리어 큐레이션",
         icon: "✨",
-        details: ["사용자 맞춤형 키보드 빌드", "무드 조명 및 데스크 매트 스타일링", "세상에 하나뿐인 독창적인 워크스테이션"]
+        details: ["금속 가공 기술 기반의 메탈 감성", "소재의 통일감을 통한 시각적 안정", "나만의 독창적인 워크스테이션"]
     },
     {
         id: 4,
-        title: "퍼포먼스 최적화",
+        title: "생산성 튜닝",
         icon: "🚀",
-        details: ["업무 몰입도 극대화를 위한 환경 세팅", "워크플로우 및 생산성 향상 가이드", "지속적인 셋업 업그레이드 지원"]
+        details: ["업무 효율을 위한 케이블 정리 솔루션", "집중력을 높이는 주변 기기 세팅", "지속 가능한 작업 환경 완성"]
     }
 ];
 
-// 이미지 비율 유지 컴포넌트
 const ProductImageWithRatio = ({ product }) => {
     const [imageRatio, setImageRatio] = useState(75);
     const imgRef = useRef();
@@ -49,12 +46,8 @@ const ProductImageWithRatio = ({ product }) => {
                     setImageRatio((img.naturalHeight / img.naturalWidth) * 100);
                 }
             };
-
-            if (img.complete) {
-                handleImageLoad();
-            } else {
-                img.onload = handleImageLoad;
-            }
+            if (img.complete) handleImageLoad();
+            else img.onload = handleImageLoad;
         }
     }, [product.imageFileName]);
 
@@ -72,7 +65,6 @@ const ProductImageWithRatio = ({ product }) => {
 };
 
 function HomePage() {
-    const [companyInfo, setCompanyInfo] = useState(null);
     const [products, setProducts] = useState([]);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
@@ -80,11 +72,7 @@ function HomePage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [companyRes, productsRes] = await Promise.all([
-                    axios.get(`${API_BASE_URL}/company-info`),
-                    axios.get(`${API_BASE_URL}/products`)
-                ]);
-                setCompanyInfo(companyRes.data);
+                const productsRes = await axios.get(`${API_BASE_URL}/products`);
                 setProducts(productsRes.data);
                 setError(null);
             } catch (err) {
@@ -94,6 +82,12 @@ function HomePage() {
         };
         fetchData();
     }, []);
+
+    // 페이지 이동 시 최상단으로 스크롤하는 함수
+    const handleNavigateToProducts = () => {
+        navigate('/products');
+        window.scrollTo(0, 0); // 이동 후 즉시 페이지 맨 위로 스크롤
+    };
 
     return (
         <div className="home-page-container">
@@ -106,24 +100,23 @@ function HomePage() {
                 </div>
 
                 <div className="hero-content">
-                    <span className="hero-tagline">BUILD YOUR ULTIMATE WORKSTATION</span>
-                    <h1 className="brand-logo-text">다나와 컴</h1>
+                    <span className="hero-tagline">THE ART OF WORKSTATION LAYOUT</span>
+                    <h1 className="brand-logo-text">ROOT STATION</h1>
 
-                    {/* 👇 [수정됨] 검색창을 여기에 배치했습니다! 👇 */}
                     <div style={{ marginTop: '20px', marginBottom: '30px' }}>
                         <SearchBar />
                     </div>
 
                     <p className="hero-subtext">
-                        단순한 책상을 넘어, 당신의 몰입을 완성하는<br/>
-                        가장 정교한 커스텀 워크스테이션 기어 큐레이션.
+                        단순한 배치를 넘어, 당신의 몰입을 설계합니다.<br/>
+                        전문가가 제안하는 **가장 효율적이고 아름다운 워크스테이션 가이드**.
                     </p>
                     <div className="hero-actions">
-                        <button onClick={() => navigate('/products')} className="hero-button primary">
-                            SHOP GEARS
+                        <button onClick={handleNavigateToProducts} className="hero-button primary">
+                            GEAR LIBRARY
                         </button>
-                        <button className="hero-button secondary">
-                            VIEW SETUP GUIDE
+                        <button onClick={() => navigate('/layouts')} className="hero-button highlight">
+                            VIEW LAYOUTS
                         </button>
                     </div>
                 </div>
@@ -133,13 +126,23 @@ function HomePage() {
 
             {/* 2. 주요 제품 섹션 */}
             <section id="products" className="info-section">
-                <div className="section-header">
-                    <h2>Featured Gears</h2>
-                    <p>전문가들이 엄선한 고성능 데스크 기어</p>
+                <div className="section-header-wrap">
+                    <div className="section-header">
+                        <h2>Featured Selections</h2>
+                        <p>공간의 완성도를 높이는 하이엔드 데스크 기어</p>
+                    </div>
+
+                    {/* ⭐ 버튼 위치를 그리드 상단으로 이동 */}
+                    <div className="view-more-top">
+                        <button onClick={handleNavigateToProducts} className="view-more-btn-text">
+                            모든 장비 보기 <span className="arrow">→</span>
+                        </button>
+                    </div>
                 </div>
+
                 {products.length > 0 ? (
                     <div className="product-grid">
-                        {products.map(product => (
+                        {products.slice(0, 4).map(product => (
                             <div
                                 key={product.id}
                                 className="product-card"
@@ -149,7 +152,7 @@ function HomePage() {
                                     <ProductImageWithRatio product={product} />
                                 )}
                                 <div className="product-card-body">
-                                    <span className="category-tag">PREMIUM SELECTION</span>
+                                    <span className="category-tag">{product.category || 'PREMIUM'}</span>
                                     <h3>{product.name}</h3>
                                     <p className="product-card-desc">
                                         {product.description && product.description.length > 60
@@ -163,14 +166,14 @@ function HomePage() {
                             </div>
                         ))}
                     </div>
-                ) : <div className="loading-text">새로운 장비들이 입고될 예정입니다.</div>}
+                ) : <div className="loading-text">큐레이션된 제품을 불러오는 중입니다.</div>}
             </section>
 
-            {/* 3. 셋업 가이드 섹션 */}
+            {/* 3. 디자인 철학 섹션 */}
             <section className="info-section process-section">
                 <div className="section-header">
-                    <h2>The Setup Guide</h2>
-                    <p>최상의 워크스테이션을 구축하는 4단계 과정</p>
+                    <h2>Design Philosophy</h2>
+                    <p>ROOT STATION이 제안하는 실패 없는 배치 공식</p>
                 </div>
                 <div className="process-horizontal-container">
                     {processSteps.map((step, index) => (
@@ -185,13 +188,11 @@ function HomePage() {
                                     <li key={idx}>{detail}</li>
                                 ))}
                             </ul>
-                            {index < processSteps.length - 1 && <div className="process-arrow">→</div>}
                         </div>
                     ))}
                 </div>
             </section>
 
-            {/* 4. 푸터 */}
             <footer className="home-footer">
                 <p>&copy; 2026 ROOT STATION. All Rights Reserved.</p>
             </footer>
