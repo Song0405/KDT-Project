@@ -1,4 +1,4 @@
-package choi.sdp_back.domain; // 패키지명 확인
+package choi.sdp_back.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -16,12 +16,14 @@ public class ShopOrder {
     @SequenceGenerator(name = "shop_order_seq_gen", sequenceName = "SHOP_ORDER_SEQ", allocationSize = 1)
     private Long id;
 
+    // ⭐ [추가됨] 회원의 고유 ID를 저장할 칸이 필요합니다!
+    private String memberId;
+
     private String memberName;  // 구매자 이름
     private String productName; // 제품명
     private int price;          // 가격
     private String merchantUid; // 주문번호
 
-    // ⭐ [추가됨] 주문 상태 (ORDERED, SHIPPING 등)
     private String status = "ORDERED";
 
     private LocalDateTime orderDate;

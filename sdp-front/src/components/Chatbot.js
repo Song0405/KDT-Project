@@ -1,5 +1,3 @@
-// frontend/src/components/Chatbot.js
-
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './Chatbot.css';
@@ -7,59 +5,73 @@ import './Chatbot.css';
 function Chatbot() {
     const [isOpen, setIsOpen] = useState(false);
 
-    // ⭐ 초기 메시지 설정
+    // ⭐ 컴퓨터 매장 컨셉 인사말
     const [messages, setMessages] = useState([
         {
-            text: "안녕하세요! SDP Solutions입니다.\n철강/금속 제조 전문가가 답변해 드립니다. 🏭",
+            text: "SYSTEM ONLINE... ⚡\n안녕하세요! ROOT STATION AI 매니저입니다.\nPC 견적, 호환성, 배송 등 무엇이든 물어보세요. 🖥️",
             sender: 'bot',
-            isWelcome: true // ⭐ 이 메시지에만 버튼을 달아주기 위한 표시
+            isWelcome: true
         }
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // ⭐ 자주 묻는 질문 리스트
+    // ⭐ 컴퓨터 관련 질문 버튼
     const quickButtons = [
-        "견적 요청 방법 📄",
-        "제작 소요 시간 ⏰",
-        "도면이 없는데 가능해? 📐",
-        "표면 처리 종류 ✨",
-        "회사 위치 안내 🗺️"
+        "배송 얼마나 걸려? 🚚",
+        "윈도우 설치해줘? 💿",
+        "AS 보증 기간은? 🛡️",
+        "호환성 체크 방법 ⚙️",
+        "매장 위치 안내 🗺️"
     ];
 
     const messagesEndRef = useRef(null);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
-    useEffect(() => { scrollToBottom(); }, [messages, isOpen]); // isOpen이 바뀔 때도 스크롤
 
-    const toggleChat = () => setIsOpen(!isOpen);
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, isOpen]);
+
+    const toggleChat = () => {
+        setIsOpen(!isOpen);
+    };
 
     const handleKeyPress = (e) => {
-        if (e.key === 'Enter') sendMessage();
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
     };
 
     const sendMessage = async (text = null) => {
         const userMessage = text || inputValue;
         if (!userMessage.trim()) return;
 
-        // 1. 사용자 메시지 추가
-        setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
+        // 사용자 메시지 추가
+        const newMessages = [...messages, { text: userMessage, sender: 'user' }];
+        setMessages(newMessages);
         setInputValue('');
         setIsLoading(true);
 
         try {
-            // 2. 서버 전송
+            // 파이썬 서버로 요청 (5002)
             const response = await axios.post('http://localhost:5002/chat', {
                 message: userMessage
             });
 
-            // 3. 봇 응답 추가
-            setMessages(prev => [...prev, { text: response.data.response, sender: 'bot' }]);
-
+            // AI 응답 추가
+            setMessages(prev => [
+                ...prev,
+                { text: response.data.response, sender: 'bot' }
+            ]);
         } catch (error) {
-            console.error("Chatbot Error:", error);
-            setMessages(prev => [...prev, { text: "죄송합니다. 서버 연결에 실패했습니다.", sender: 'bot' }]);
+            console.error("Chat Error:", error);
+            setMessages(prev => [
+                ...prev,
+                { text: "⚠️ 통신 오류: 파이썬 서버(app.py)가 켜져 있는지 확인해주세요.", sender: 'bot' }
+            ]);
         } finally {
             setIsLoading(false);
         }
@@ -69,26 +81,24 @@ function Chatbot() {
         <>
             {/* 챗봇 토글 버튼 */}
             <button className="chatbot-btn" onClick={toggleChat}>
-                {isOpen ? '✖' : '💬'}
+                {isOpen ? '❌' : '💬'}
             </button>
 
-            {/* 채팅창 본체 */}
+            {/* 챗봇 윈도우 */}
             {isOpen && (
                 <div className="chat-window">
                     <div className="chat-header">
-                        <span>SDP AI 상담원</span>
-                        <button className="close-btn" onClick={toggleChat}>✖</button>
+                        <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>🤖</span>
+                        <span>ROOT AI SUPPORT</span>
                     </div>
 
                     <div className="chat-messages">
                         {messages.map((msg, index) => (
-                            <div key={index} className={`message ${msg.sender}`}>
-                                {/* 줄바꿈 처리 (\n -> <br>) */}
-                                {msg.text.replaceAll('**', '').split('\n').map((line, i) => (
-                                    <span key={i}>{line}<br/></span>
-                                ))}
-
-                                {/* ⭐ 첫 번째 환영 메시지(bot) 안에만 버튼 표시 ⭐ */}
+                            <div key={index} className={`message-container ${msg.sender}`}>
+                                <div className={`message ${msg.sender}`}>
+                                    {msg.text}
+                                </div>
+                                {/* 웰컴 메시지일 때만 버튼 보여주기 */}
                                 {msg.isWelcome && (
                                     <div className="quick-reply-container">
                                         {quickButtons.map((btnText, idx) => (
@@ -106,7 +116,11 @@ function Chatbot() {
                             </div>
                         ))}
 
-                        {isLoading && <div className="message bot">입력 중... 💬</div>}
+                        {isLoading && (
+                            <div className="message-container bot">
+                                <div className="message bot">분석 중... ⏳</div>
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
 

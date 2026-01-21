@@ -3,15 +3,24 @@ package choi.sdp_back.repository;
 import choi.sdp_back.domain.ShopOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
-import java.util.Optional; // ⭐ 이거 추가 필요!
 
 public interface ShopOrderRepository extends JpaRepository<ShopOrder, Long> {
-    // 1. 내 주문 내역
+
+    // [기존] 이름으로 찾기 (이건 이제 안 쓸 예정이지만 남겨둠)
     List<ShopOrder> findByMemberNameOrderByOrderDateDesc(String memberName);
 
-    // 2. 관리자용 전체 조회
+    // ⭐ [신규 추가] ID로 주문 내역 조회 (최신순 정렬)
+    // 탈퇴하면 ID가 바뀌므로, 이 기능으로 찾으면 탈퇴한 주문은 절대 안 뜹니다!
+    List<ShopOrder> findByMemberIdOrderByOrderDateDesc(String memberId);
+
+    // 관리자용 전체 조회
     List<ShopOrder> findAllByOrderByOrderDateDesc();
 
-    // ⭐ 3. [추가] 송장번호(merchantUid)로 주문 1개 찾기
-    Optional<ShopOrder> findByMerchantUid(String merchantUid);
+    // 송장번호 조회
+    List<ShopOrder> findByMerchantUid(String merchantUid);
+
+    // 탈퇴 처리용 조회
+    List<ShopOrder> findAllByMemberId(String memberId);
+    // 구매 검증용: "내 아이디 + 상품명"으로 주문 기록이 존재하는지 확인
+    boolean existsByMemberIdAndProductName(String memberId, String productName);
 }
