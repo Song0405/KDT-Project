@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
 import AdminLoginPage from './pages/AdminLoginPage';
@@ -14,10 +16,13 @@ import NoticePage from './pages/NoticePage';
 import ProductListPage from './pages/product/ProductListPage';
 import ProductDetailPage from './pages/product/ProductDetailPage';
 import CartPage from "./pages/CartPage";
-import ContactPage from './pages/ContactPage'; // ✨ [1] 문의하기 페이지 import 추가
+import ContactPage from './pages/ContactPage';
+import ChangeInfoPage from './pages/ChangeInfoPage';
+
+// ✨ [1] 시뮬레이터 대신 추천 배치 쇼케이스 페이지 임포트
+import LayoutShowcase from './pages/LayoutShowcase';
 
 import './index.css';
-import ChangeInfoPage from './pages/ChangeInfoPage';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -28,10 +33,11 @@ function App() {
         return localStorage.getItem('memberName') || '';
     });
 
+    const [products, setProducts] = useState([]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
 
-    // 상태 동기화
+    // 상태 동기화 및 제품 데이터 로드
     useEffect(() => {
         if (isAuthenticated) {
             localStorage.setItem('isAuthenticated', 'true');
@@ -41,6 +47,16 @@ function App() {
             localStorage.removeItem('memberName');
             setMemberName('');
         }
+
+        const fetchProducts = async () => {
+            try {
+                const res = await axios.get('http://localhost:8080/api/products');
+                setProducts(res.data);
+            } catch (err) {
+                console.error("제품 목록 로드 실패:", err);
+            }
+        };
+        fetchProducts();
     }, [isAuthenticated]);
 
     const handleLogout = () => {
@@ -54,19 +70,14 @@ function App() {
         setIsMenuOpen(!isMenuOpen);
     };
 
-    // ⭐ [보안 수정] 관리자 접근 권한 체크 컴포넌트
+    // 관리자 접근 권한 체크 컴포넌트
     const ProtectedAdminRoute = ({ children }) => {
-        // 1. 로그인이 안 되어 있거나, 이름 정보가 없으면 -> 로그인 페이지 (팝업 X)
         if (!isAuthenticated || !memberName) {
             return <AdminLoginPage setAuthenticated={setIsAuthenticated} />;
         }
-
-        // 2. 로그인은 확실한데, 이름이 '관리자'가 아니면 -> 접근 거부 (팝업 O)
         if (memberName !== '관리자') {
             return <AccessDenied />;
         }
-
-        // 3. 통과 (관리자)
         return children;
     };
 
@@ -110,24 +121,25 @@ function App() {
                             <div style={styles.menuColumn}>
                                 <h3 style={styles.columnTitle}>MEMBERSHIP</h3>
                                 <Link style={styles.menuItem} to="/members/mypage" onClick={toggleMenu}>마이 페이지</Link>
+                                <Link style={styles.menuItem} to="/members/edit" onClick={toggleMenu}>정보 수정</Link>
                             </div>
                             <div style={styles.menuColumn}>
                                 <h3 style={styles.columnTitle}>SHOPPING</h3>
                                 <Link style={styles.menuItem} to="/products" onClick={toggleMenu}>제품 목록</Link>
-                                <Link style={styles.menuItem} to="/track" onClick={toggleMenu}>주문/배송 조회</Link>
-                                <Link style={styles.menuItem} to="/cart" onClick={toggleMenu}>
-                                    장바구니 (CART)
+
+                                {/* ✨ [2] 메뉴 링크 수정: 시뮬레이터 제거 -> 추천 배치 쇼케이스 */}
+                                <Link style={{...styles.menuItem, color: '#00d4ff', fontWeight: 'bold'}} to="/layouts" onClick={toggleMenu}>
+                                    추천 배치 (SHOWCASE)
                                 </Link>
+
+                                <Link style={styles.menuItem} to="/track" onClick={toggleMenu}>주문/배송 조회</Link>
+                                <Link style={styles.menuItem} to="/cart" onClick={toggleMenu}>장바구니 (CART)</Link>
                             </div>
                             <div style={styles.menuColumn}>
                                 <h3 style={styles.columnTitle}>SUPPORT</h3>
                                 <Link style={styles.menuItem} to="/notices" onClick={toggleMenu}>공지사항</Link>
-
-                                {/* ✨ [2] 여기에 문의하기 버튼 추가했습니다! */}
                                 <Link style={styles.menuItem} to="/contact" onClick={toggleMenu}>1:1 문의하기</Link>
-
-                                {/* 관리자 모드 링크 */}
-                                <Link style={styles.menuItem} to="/admin" onClick={toggleMenu} style={{color: '#bb86fc'}}>관리자 모드</Link>
+                                <Link style={{...styles.menuItem, color: '#bb86fc'}} to="/admin" onClick={toggleMenu}>관리자 모드</Link>
                             </div>
                         </div>
                     </div>
@@ -142,15 +154,16 @@ function App() {
                     <Route path="/members/find" element={<FindPage />} />
                     <Route path="/members/mypage" element={<MyPage />} />
                     <Route path="/notices" element={<NoticePage />} />
-
-                    {/* ✨ [3] 문의하기 페이지 라우터 연결 완료! */}
                     <Route path="/contact" element={<ContactPage />} />
-
                     <Route path="/track" element={<OrderSearchPage />} />
                     <Route path="/products" element={<ProductListPage />} />
                     <Route path="/products/:id" element={<ProductDetailPage />} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/members/edit" element={<ChangeInfoPage />} />
+
+                    {/* ✨ [3] 시뮬레이터 라우트 제거 및 추천 배치 쇼케이스 라우트 연결 */}
+                    <Route path="/layouts" element={<LayoutShowcase />} />
+
                     <Route path="/admin" element={
                         <ProtectedAdminRoute>
                             <AdminPage />
@@ -173,7 +186,6 @@ function App() {
     );
 }
 
-// 팝업창 중복 방지를 위한 별도 컴포넌트
 function AccessDenied() {
     const navigate = useNavigate();
     const hasAlerted = useRef(false);

@@ -8,6 +8,7 @@ import choi.sdp_back.repository.ProductRecommendationRepository;
 import choi.sdp_back.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -136,4 +137,24 @@ public class ProductService {
         dto.setRecommendations(recDtos);
         return dto;
     }
+    public List<ProductDto> getAllProducts(String sortOrder) {
+        Sort sort = Sort.by("id").descending(); // 기본값: 최신순 (ID 내림차순)
+
+        if ("low".equals(sortOrder)) {
+            sort = Sort.by("price").ascending(); // 가격 낮은 순
+        } else if ("high".equals(sortOrder)) {
+            sort = Sort.by("price").descending(); // 가격 높은 순
+        } else if ("name".equals(sortOrder)) {
+            sort = Sort.by("name").ascending(); // 이름 순
+        }
+
+        // findAll에 sort를 넣어주면 알아서 정렬해서 가져옵니다!
+        List<Product> products = productRepository.findAll(sort);
+
+        // (Dto 변환 로직은 기존 코드 유지)
+        return products.stream()
+                .map(ProductDto::from)  // 👈 여기를 'toDto'에서 'from'으로 수정!
+                .collect(Collectors.toList());
+    }
+
 }

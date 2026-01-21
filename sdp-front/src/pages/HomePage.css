@@ -218,6 +218,29 @@
     overflow: hidden;
     background: #000;
 }
+.section-header-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #1a1a1a;
+    padding-bottom: 20px;
+}
+
+.view-more-btn-text {
+    background: none;
+    border: none;
+    color: #00d4ff;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: 0.3s;
+}
+
+.view-more-btn-text:hover {
+    color: #fff;
+    text-decoration: underline;
+}
 
 .product-image {
     position: absolute;
