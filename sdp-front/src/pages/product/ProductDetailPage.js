@@ -87,30 +87,46 @@ function ProductDetailPage() {
         }
     };
 
-    // ⭐ [추가] 리뷰 등록 함수
+    // 리뷰 등록 함수 (수정됨)
     const submitReview = async () => {
+        // 1. 로그인 체크
         if (!userInfo.name || userInfo.name === 'Unknown Agent') {
             alert("로그인이 필요합니다.");
             return;
         }
+        // 2. 빈 내용 체크
         if (!newReview.content.trim()) {
             alert("내용을 입력해주세요.");
             return;
         }
 
         try {
-            await axios.post(`${BASE_URL}/reviews`, {
+            // 3. 서버로 전송 (memberId 추가!)
+            const res = await axios.post(`${BASE_URL}/reviews`, {
                 productId: id,
+                memberId: userInfo.memberId, // ⭐ [추가됨] 구매 인증을 위해 ID 전송
                 writer: userInfo.name,
                 content: newReview.content,
                 rating: newReview.rating
             });
-            alert("리뷰가 등록되었습니다!");
-            setNewReview({ content: '', rating: 5 }); // 초기화
-            fetchReviews(); // 목록 새로고침
+
+            // 4. 응답 처리
+            if (res.data === "NOT_PURCHASED") {
+                // 🚨 구매하지 않은 경우
+                alert("⛔ 구매 고객만 리뷰를 작성할 수 있습니다.\n\n(상품을 구매한 후 이용해주세요!)");
+            } else if (res.data === "SUCCESS") {
+                // ✅ 성공한 경우
+                alert("리뷰가 등록되었습니다!");
+                setNewReview({ content: '', rating: 5 }); // 입력창 초기화
+                fetchReviews(); // 목록 새로고침
+            } else {
+                // 기타 메시지
+                alert(res.data);
+            }
+
         } catch (err) {
             console.error(err);
-            alert("리뷰 등록 실패");
+            alert("리뷰 등록 중 오류가 발생했습니다.");
         }
     };
 

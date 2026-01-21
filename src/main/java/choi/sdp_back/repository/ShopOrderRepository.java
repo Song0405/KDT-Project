@@ -21,4 +21,6 @@ public interface ShopOrderRepository extends JpaRepository<ShopOrder, Long> {
 
     // 탈퇴 처리용 조회
     List<ShopOrder> findAllByMemberId(String memberId);
+    // 구매 검증용: "내 아이디 + 상품명"으로 주문 기록이 존재하는지 확인
+    boolean existsByMemberIdAndProductName(String memberId, String productName);
 }
