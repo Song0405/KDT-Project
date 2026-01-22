@@ -1,64 +1,46 @@
-> **빅데이터와 AI를 활용한 조립 컴퓨터 전문 큐레이션 플랫폼** > Spring Boot와 Python(Flask) 마이크로서비스 아키텍처를 기반으로 구축된 E-Commerce 프로젝트입니다.
+## 👨‍💻 핵심 구현 기능 (Developed by 김태현)
+
+본 프로젝트에서 **Python AI 서버 구축부터 React 프론트엔드 연동까지, 인공지능 관련 전 기능을 단독으로 설계 및 구현**했습니다. 또한, 사용자-관리자 간의 1:1 문의 시스템(Full CRUD)을 개발하여 서비스의 완성도를 높였습니다.
+
+### 1. 🤖 AI & Deep Learning 기능 (100% 자체 구현)
+단순한 API 호출이 아닌, **Python Flask 서버를 직접 구축**하여 실제 커머스에 필요한 5가지 핵심 AI 기능을 개발했습니다.
+
+#### ① 🔐 관리자 안면 인식 로그인 (Face Auth System)
+* **기능:** 관리자 페이지 접속 시, ID/PW 입력 없이 웹캠을 통해 즉시 로그인합니다.
+* **구현 원리:**
+  1. React에서 `WebCam` 모듈을 이용해 실시간 영상 프레임을 캡처합니다. (`AdminLoginPage.js`)
+  2. 캡처된 이미지를 Python 서버로 전송합니다.
+  3. 서버에서 **Face Recognition** 라이브러리를 사용해 사전 등록된 관리자 얼굴 데이터(Embedding Vector)와 대조하여 본인 여부를 0.5초 내에 판별합니다.
+
+#### ② 💬 AI 챗봇 어시스턴트 (Smart Chatbot)
+* **기능:** 24시간 고객 응대를 위한 플로팅 챗봇을 구현했습니다.
+* **구현 원리:**
+  * 자연어 처리(NLP)를 통해 사용자의 질문 의도를 파악하고, 상품 추천, 배송 조회, 교환/환불 규정 등을 즉각적으로 답변합니다.
+  * 모든 페이지에서 접근 가능하도록 전역 컴포넌트로 배치하여 접근성을 높였습니다. (`Chatbot.js`)
+
+#### ③ 📸 이미지 검색 & 짝퉁 방지 (Visual Search & Security)
+* **기능:** 텍스트 없이 이미지만으로 상품을 검색하고, 관리자의 중복 상품 등록을 막습니다.
+* **구현 원리:**
+  * **유사 이미지 검색:** 업로드된 이미지의 특징점(Feature)을 추출하여 DB 내 상품들과 코사인 유사도를 비교, 가장 비슷한 상품을 찾아냅니다.
+  * **짝퉁(중복) 탐지:** 관리자가 상품 등록 시, 기존 데이터베이스와 이미지를 대조하여 **유사도가 90% 이상일 경우 '중복 상품' 경고**를 띄우고 등록을 차단합니다.
+
+#### ④ 💳 AI 과소비 방지 (Wallet Guard)
+* **기능:** 충동구매를 막기 위해 결제 직전 사용자의 구매 패턴을 분석합니다.
+* **구현 원리:** 사용자의 **과거 주문 내역(History)**과 **현재 장바구니(Cart)** 품목을 AI에게 전송하여, 중복 구매나 과소비 패턴이 감지될 경우 **SweetAlert2 경고창**을 통해 합리적 소비를 제안합니다.
+
+#### ⑤ 📊 리뷰 감정 분석 & 카테고리 자동 분류
+* **감정 분석:** 고객 리뷰 텍스트를 분석하여 **[😊 긍정] / [😡 부정]** 태그를 자동으로 부착하고, 관리자가 여론을 쉽게 파악하도록 시각화했습니다.
+* **자동 분류:** 상품 이미지를 올리면 AI가 사물을 인식하여 **'Keyboard', 'Monitor' 등의 카테고리를 자동으로 입력**해 줍니다.
 
 ---
 
-## 📅 프로젝트 개요
-- **프로젝트명:** ROOT STATION (루트 스테이션)
-- **개발 기간:** 2025.12.29 ~ 2026.2.1 (약 5주)
-- **팀원:** [김태현] (Full Stack & AI Integration)
-- **주요 컨셉:** Cyberpunk & Tech 테마의 프리미엄 조립 PC 샵
+### 2. 📝 1:1 문의 시스템 (Full CRUD)
+사용자와 관리자 간의 소통을 위한 게시판 기능을 **역할(Role) 기반**으로 완벽하게 구현했습니다.
 
-## 🛠️ Tech Stack (기술 스택)
-
-### Frontend
-<img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=React&logoColor=black"> <img src="https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white"> <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white">
-
-### Backend
-<img src="https://img.shields.io/badge/Spring Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white"> <img src="https://img.shields.io/badge/Java 17-007396?style=for-the-badge&logo=openjdk&logoColor=white"> <img src="https://img.shields.io/badge/Spring Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white"> <img src="https://img.shields.io/badge/JPA (Hibernate)-59666C?style=for-the-badge&logo=hibernate&logoColor=white">
-
-### Database
-<img src="https://img.shields.io/badge/Oracle 19c-F80000?style=for-the-badge&logo=oracle&logoColor=white">
-
-### AI & API
-<img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white"> <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white"> <img src="https://img.shields.io/badge/Ollama (Gemma)-000000?style=for-the-badge&logo=ollama&logoColor=white"> <img src="https://img.shields.io/badge/Google Cloud Vision-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white">
-
----
-
-## 🌟 Key Features (핵심 기능)
-
-### 1. 🤖 AI 기반 스마트 챗봇 (Python Flask 연동)
-- **기술:** `SentenceTransformer`, `Cosine Similarity`, Flask API
-- **기능:** 사용자의 자연어 질문("배송 언제 와?", "호환성 체크해줘")을 벡터화하여, 사전에 학습된 매장 데이터(`CSV`)와 비교 분석 후 최적의 답변을 제공합니다.
-- **특징:** 단순 키워드 매칭이 아닌 **문맥 유사도 분석**을 통해 정확도 높은 답변 구현.
-
-### 2. 📸 관리자 생체 인증 (Face Recognition Login)
-- **기술:** `face_recognition`, OpenCV, WebCam API
-- **기능:** 관리자 페이지 접속 시 비밀번호 입력 없이 **웹캠을 통한 안면 인식**으로 보안 로그인을 수행합니다.
-- **아키텍처:** React(영상 캡처) → Python(얼굴 벡터 분석 및 DB 대조) → Spring Boot(인증 토큰 발급)
-
-### 3. 📝 OCR 사업자 인증 시스템
-- **기술:** Google Cloud Vision API
-- **기능:** 기업 회원이 사업자등록증 이미지를 업로드하면, OCR 기술로 텍스트를 추출하여 자동으로 가입 폼을 완성합니다.
-
-### 4. 📦 완전한 주문/배송 관리 (Full CRUD)
-- **관리자:** 주문 상태 변경(준비중/배송중/완료), 송장 번호 관리.
-- **사용자:** 부여받은 **시리얼 코드(송장 번호)**를 입력하여 실시간 배송 현황을 시각적으로 조회 (`Track Your Gear` UI).
-
-### 5. 🛍️ 상품 관리 및 AI 추천
-- **기능:** 상품 등록 시 AI(Ollama/Gemma 모델)가 제품 이미지를 분석하거나 설명을 보완하여 **마케팅 문구를 자동 생성**해줍니다.
-
----
-
-## 📐 System Architecture (시스템 구조)
-
-```mermaid
-graph LR
-    A[Client (React)] -- REST API (Port 3000) --> B[Main Server (Spring Boot / Port 8080)]
-    B -- JPA/JDBC --> C[(Oracle DB)]
-    
-    subgraph AI Service
-    A -- Chat/Face Request --> D[AI Server (Python Flask / Port 5002)]
-    D -- Analysis Result --> A
-    end
-    
-    B -- OCR Request --> E[Google Cloud Vision API]
+* **User (사용자):**
+  * **Create:** 로그인 세션을 연동하여 본인 명의로 문의를 등록합니다.
+  * **Read & Update:** 마이페이지에서 **본인이 쓴 글만 필터링**하여 조회 및 수정이 가능합니다.
+  * **UX:** 인라인 편집 모드를 적용하여 페이지 이동 없이 제목/내용을 즉시 수정할 수 있습니다.
+* **Admin (관리자):**
+  * **Dashboard:** 모든 회원의 문의 내역을 긴급도 순으로 모아볼 수 있습니다.
+  * **Answer:** 문의에 답변을 등록하면, 사용자 화면에 실시간으로 '답변 완료' 상태가 반영됩니다.
