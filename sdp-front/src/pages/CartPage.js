@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2'; // 🍬 추가
 import './CartPage.css';
 
-// ⭐ 서버 주소 상수화 (유지보수 용이성)
 const API_BASE_URL = 'http://localhost:8080/api';
 const AI_SERVER_URL = 'http://localhost:5002';
 
@@ -20,8 +20,8 @@ function CartPage() {
 
     useEffect(() => {
         if (!userInfo.name) {
-            alert("로그인이 필요합니다.");
-            navigate('/members/login');
+            Swal.fire({ icon: 'warning', title: '로그인 필요', text: '장바구니를 보려면 로그인이 필요합니다.', background: '#333', color: '#fff' })
+                .then(() => navigate('/members/login'));
             return;
         }
         fetchCart();
@@ -53,73 +53,79 @@ function CartPage() {
     };
 
     const handleDelete = (id) => {
-        if(window.confirm("삭제하시겠습니까?")) {
-            axios.delete(`${API_BASE_URL}/cart/${id}`)
-                .then(() => fetchCart());
-        }
+        Swal.fire({
+            title: '삭제하시겠습니까?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4d4d',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: '삭제',
+            background: '#333', color: '#fff'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                axios.delete(`${API_BASE_URL}/cart/${id}`)
+                    .then(() => fetchCart());
+            }
+        });
     };
 
     const selectedItems = cartItems.filter(item => selectedIds.includes(item.id));
     const totalPrice = selectedItems.reduce((acc, item) => acc + item.price, 0);
 
-    // 주문명 생성 로직
     const orderName = selectedItems.length > 1
         ? `${selectedItems[0].productName} 외 ${selectedItems.length - 1}건`
         : (selectedItems[0] ? selectedItems[0].productName : "");
 
-    // ⭐ [핵심 수정] 결제 요청 함수 (AI 검사 로직 추가)
+    // ⭐ 결제 요청 함수 (AI 검사 + Swal 적용)
     const requestPay = async () => {
         if (selectedItems.length === 0) {
-            alert("결제할 상품을 선택해주세요.");
+            Swal.fire({ icon: 'info', title: '선택 없음', text: '결제할 상품을 선택해주세요.', background: '#333', color: '#fff' });
             return;
         }
 
-        // ---------------------------------------------------------
-        // 🤖 [AI 지갑 지킴이] 과소비/중복 구매 방지 로직 시작
-        // ---------------------------------------------------------
         try {
-            console.log("🤖 AI 지갑 지킴이 작동 중...");
+            // 로딩 표시
+            Swal.fire({
+                title: 'AI 지갑 지킴이 가동 중... 👮‍♂️',
+                text: '과소비 패턴을 분석하고 있습니다.',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                background: '#333', color: '#fff'
+            });
 
-            // 1. 내 과거 주문 내역 가져오기 (Spring Boot)
             const historyRes = await axios.get(`${API_BASE_URL}/shop-orders?memberId=${userInfo.memberId}`);
-            // 과거 주문한 상품명 리스트 추출
             const pastOrders = historyRes.data.map(order => order.productName);
-
-            // 2. 현재 장바구니에 담긴 상품명 리스트 추출
             const currentItemsNames = selectedItems.map(item => item.productName);
 
-            // 3. 파이썬 AI 서버에게 비교 요청
-            // (app.py의 /check-consumption 엔드포인트가 리스트 형태 입력을 받도록 수정되어 있어야 함)
             const aiRes = await axios.post(`${AI_SERVER_URL}/check-consumption`, {
                 current: currentItemsNames,
                 past_orders: pastOrders
             });
 
-            // 4. AI가 "경고(warning)"를 보냈는지 확인
-            if (aiRes.data.isOverConsumption) {
-                // 경고창 띄우기
-                const userConfirmed = window.confirm(
-                    `🤖 [AI 지갑 지킴이 경고]\n\n${aiRes.data.reason}\n\n그래도 결제를 진행하시겠습니까?`
-                );
+            Swal.close(); // 로딩 닫기
 
-                // 사용자가 "취소"를 누르면 결제 중단 (지갑 방어 성공)
-                if (!userConfirmed) {
-                    console.log("사용자가 AI의 조언을 듣고 결제를 취소했습니다.");
-                    return;
-                }
-            } else {
-                console.log("AI 검사 통과: 과소비 위험 없음 ✅");
+            if (aiRes.data.isOverConsumption) {
+                const result = await Swal.fire({
+                    title: '🚨 AI 과소비 경고!',
+                    html: `<p style="color:#aaa">${aiRes.data.reason}</p><br/><b>그래도 결제를 진행하시겠습니까?</b>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ff4d4d',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: '진행',
+                    cancelButtonText: '취소',
+                    background: '#222', color: '#fff'
+                });
+
+                if (!result.isConfirmed) return; // 취소됨
             }
 
         } catch (err) {
-            // AI 서버가 꺼져있거나 에러가 나도 결제는 막지 않음 (서비스 연속성)
-            console.error("AI 검사 중 오류 발생 (결제는 계속 진행됩니다):", err);
+            console.error("AI 검사 오류:", err);
+            // 에러 나도 결제 진행
         }
-        // ---------------------------------------------------------
-        // 🤖 [AI 지갑 지킴이] 로직 끝
-        // ---------------------------------------------------------
 
-        // 여기서부터는 기존 결제 로직 (PortOne)
+        // PortOne 결제
         const { IMP } = window;
         IMP.init('imp44181766');
 
@@ -135,7 +141,6 @@ function CartPage() {
 
         IMP.request_pay(data, async (response) => {
             if (response.success) {
-                // 일괄 저장을 위한 데이터 준비
                 const orderDataList = selectedItems.map(item => ({
                     memberId: userInfo.memberId,
                     memberName: userInfo.name,
@@ -145,22 +150,22 @@ function CartPage() {
                 }));
 
                 try {
-                    // 1. 주문 내역 일괄 저장
                     await axios.post(`${API_BASE_URL}/shop-orders/batch`, orderDataList);
-
-                    // 2. 결제된 아이템 장바구니에서 삭제
                     for (const id of selectedIds) {
                         await axios.delete(`${API_BASE_URL}/cart/${id}`);
                     }
 
-                    alert("결제가 완료되었습니다!");
-                    navigate('/members/mypage');
+                    Swal.fire({
+                        icon: 'success', title: '결제 완료!',
+                        text: '주문 내역이 정상적으로 저장되었습니다.',
+                        background: '#333', color: '#fff', confirmButtonColor: '#00d4ff'
+                    }).then(() => navigate('/members/mypage'));
+
                 } catch (err) {
-                    console.error(err);
-                    alert("결제는 성공했으나 저장 중 오류가 발생했습니다.");
+                    Swal.fire('오류', '결제는 성공했으나 저장 중 오류가 발생했습니다.', 'error');
                 }
             } else {
-                alert(`결제 실패: ${response.error_msg}`);
+                Swal.fire({ icon: 'error', title: '결제 실패', text: response.error_msg, background: '#333', color: '#fff' });
             }
         });
     };
