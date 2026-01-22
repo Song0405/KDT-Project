@@ -137,7 +137,56 @@ function AdminPage() {
         setEditingProduct({ ...product, usage: product.usage || 'GAMING' });
         setEditingProductFile(null);
     };
+// 📸 [최종] 하이브리드 분석 요청 함수 (이미지 + 텍스트)
+    const handleImageChange = async (e, isEditMode = false) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
+        // 1. 미리보기 저장
+        if (isEditMode) {
+            setEditingProductFile(file);
+        } else {
+            setNewProductFile(file);
+        }
+
+        // 2. 현재 입력된 텍스트 정보 가져오기
+        // (사용자가 이미 이름을 적고 이미지를 올렸다면, 그 텍스트가 힌트가 됨!)
+        const currentName = isEditMode ? editingProduct.name : newProduct.name;
+        const currentDesc = isEditMode ? editingProduct.description : newProduct.description;
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // ⭐ [핵심] 텍스트 힌트도 같이 보냄!
+            formData.append('name', currentName || '');
+            formData.append('description', currentDesc || '');
+
+            console.log("🤖 AI에게 복합 분석(이미지+텍스트) 요청 중...");
+            const res = await axios.post(`${AI_SERVER_URL}/predict-category`, formData);
+
+            if (res.data.status === 'success') {
+                const aiCategory = res.data.category;
+                const method = res.data.method; // 분석 방법 (TEXT_KEYWORD or IMAGE_DL)
+
+                if (aiCategory !== 'ETC') {
+                    // 분석 방식에 따라 메시지 다르게 (디버깅용)
+                    // let logMsg = method === 'TEXT_KEYWORD'
+                    //    ? `📝 텍스트 힌트로 분류 성공: [${aiCategory}]`
+                    //    : `📸 이미지 분석으로 분류 성공: [${aiCategory}]`;
+                    // console.log(logMsg);
+
+                    if (isEditMode) {
+                        setEditingProduct(prev => ({ ...prev, category: aiCategory }));
+                    } else {
+                        setNewProduct(prev => ({ ...prev, category: aiCategory }));
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("AI 분석 실패:", err);
+        }
+    };
     // --- 제품 수정 (AI 검사 적용) ---
     const handleUpdateProduct = async (e) => {
         e.preventDefault();
@@ -235,8 +284,12 @@ function AdminPage() {
                             <input type="number" placeholder="가격" value={newProduct.price} onChange={(e)=>setNewProduct({...newProduct, price: e.target.value})} required />
 
                             <div className="custom-file-upload">
-                                <label htmlFor="file-add">📸 제품 이미지 (AI 검수)</label>
-                                <input id="file-add" type="file" onChange={(e)=>setNewProductFile(e.target.files[0])} />
+                                <label htmlFor="file-add">📸 제품 이미지 (AI 검수 + 자동태깅)</label>
+                                <input
+                                    id="file-add"
+                                    type="file"
+                                    onChange={(e) => handleImageChange(e, false)}
+                                />
                                 {newProductFile && <span className="file-name">{newProductFile.name}</span>}
                             </div>
 
@@ -357,10 +410,14 @@ function AdminPage() {
                                     )}
                                 </div>
 
-                                {/* 파일 선택 버튼 */}
+                                {/* 수정 팝업의 파일 업로드 부분 */}
                                 <div className="custom-file-upload">
                                     <label htmlFor="file-edit" style={{cursor:'pointer', color:'#00d4ff'}}>🔄 새 이미지 선택하기</label>
-                                    <input id="file-edit" type="file" onChange={(e)=>setEditingProductFile(e.target.files[0])} />
+                                    <input
+                                        id="file-edit"
+                                        type="file"
+                                        onChange={(e) => handleImageChange(e, true)}
+                                    />
                                     {editingProductFile && <span className="file-name" style={{color: '#00d4ff'}}> {editingProductFile.name}</span>}
                                 </div>
                             </div>
