@@ -7,6 +7,83 @@ const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 const AI_SERVER_URL = 'http://localhost:5002'; // 🐍 파이썬 주소 추가
 
+// 🤖 [NEW] AI가 실시간으로 분석해주는 문의사항 카드 컴포넌트
+const ContactItem = ({ contact, activeContactId, setActiveContactId, replyText, setReplyText, handleRegisterAnswer }) => {
+    const [aiAnalysis, setAiAnalysis] = useState(null);
+
+    // 컴포넌트가 화면에 나올 때 AI에게 분석 요청
+    useEffect(() => {
+        const analyze = async () => {
+            try {
+                const res = await axios.post(`${AI_SERVER_URL}/analyze-contact`, {
+                    title: contact.title,
+                    content: contact.content
+                });
+                if (res.data.status === 'success') {
+                    setAiAnalysis(res.data);
+                }
+            } catch (err) {
+                console.error("AI 분석 실패:", err);
+            }
+        };
+        analyze();
+    }, [contact]);
+
+    const isCritical = aiAnalysis?.priority === 'CRITICAL';
+
+    return (
+        <div className="admin-list-card"
+             style={{
+                 flexDirection: 'column',
+                 alignItems: 'flex-start',
+                 gap: '8px',
+                 // 🚨 긴급이면 빨간 테두리와 배경색 적용
+                 border: isCritical ? '2px solid #ff4d4d' : '1px solid #444',
+                 background: isCritical ? 'rgba(255, 77, 77, 0.1)' : '#333'
+             }}>
+
+            {/* AI 분석 배지 */}
+            {aiAnalysis && (
+                <div style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    color: isCritical ? '#ff4d4d' : '#00d4ff',
+                    marginBottom: '5px'
+                }}>
+                    {aiAnalysis.ai_memo}
+                </div>
+            )}
+
+            <div style={{display:'flex', justifyContent:'space-between', width:'100%'}}>
+                <h4 style={{color: isCritical ? '#ffaaaa' : '#00d4ff', margin:0}}>
+                    {isCritical && "🔥 "} {contact.title}
+                </h4>
+                <span style={{fontSize:'0.8rem', color:'#666'}}>{new Date(contact.createdAt).toLocaleDateString()}</span>
+            </div>
+
+            <p style={{color:'#ddd', fontSize:'0.9rem'}}>{contact.content}</p>
+
+            {contact.answer && activeContactId !== contact.id && (
+                <div style={{background:'rgba(0,212,255,0.1)', padding:'10px', width:'100%', borderRadius:'4px', marginTop:'5px'}}>
+                    <p style={{color:'#ccc', margin:0}}>↳ {contact.answer}</p>
+                </div>
+            )}
+
+            {activeContactId === contact.id ? (
+                <div style={{width:'100%', marginTop:'5px'}}>
+                    <textarea value={replyText} onChange={(e)=>setReplyText(e.target.value)} style={{width:'100%', background:'#222', color:'white'}} placeholder="답변 입력..." />
+                    <button onClick={()=>handleRegisterAnswer(contact.id)} className="btn-save-small">등록</button>
+                    <button onClick={()=>{setActiveContactId(null); setReplyText('');}} className="btn-cancel-small">취소</button>
+                </div>
+            ) : (
+                <button onClick={()=>{setActiveContactId(contact.id); setReplyText(contact.answer||'');}} style={{background:'none', border:'1px solid #555', color:'#aaa', fontSize:'0.8rem', marginTop:'5px'}}>
+                    {contact.answer ? '답변 수정' : '답변 달기'}
+                </button>
+            )}
+        </div>
+    );
+};
+
 function AdminPage() {
     // --- 1. 상태 관리 ---
     const [products, setProducts] = useState([]);
@@ -137,7 +214,56 @@ function AdminPage() {
         setEditingProduct({ ...product, usage: product.usage || 'GAMING' });
         setEditingProductFile(null);
     };
+// 📸 [최종] 하이브리드 분석 요청 함수 (이미지 + 텍스트)
+    const handleImageChange = async (e, isEditMode = false) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
+        // 1. 미리보기 저장
+        if (isEditMode) {
+            setEditingProductFile(file);
+        } else {
+            setNewProductFile(file);
+        }
+
+        // 2. 현재 입력된 텍스트 정보 가져오기
+        // (사용자가 이미 이름을 적고 이미지를 올렸다면, 그 텍스트가 힌트가 됨!)
+        const currentName = isEditMode ? editingProduct.name : newProduct.name;
+        const currentDesc = isEditMode ? editingProduct.description : newProduct.description;
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // ⭐ [핵심] 텍스트 힌트도 같이 보냄!
+            formData.append('name', currentName || '');
+            formData.append('description', currentDesc || '');
+
+            console.log("🤖 AI에게 복합 분석(이미지+텍스트) 요청 중...");
+            const res = await axios.post(`${AI_SERVER_URL}/predict-category`, formData);
+
+            if (res.data.status === 'success') {
+                const aiCategory = res.data.category;
+                const method = res.data.method; // 분석 방법 (TEXT_KEYWORD or IMAGE_DL)
+
+                if (aiCategory !== 'ETC') {
+                    // 분석 방식에 따라 메시지 다르게 (디버깅용)
+                    // let logMsg = method === 'TEXT_KEYWORD'
+                    //    ? `📝 텍스트 힌트로 분류 성공: [${aiCategory}]`
+                    //    : `📸 이미지 분석으로 분류 성공: [${aiCategory}]`;
+                    // console.log(logMsg);
+
+                    if (isEditMode) {
+                        setEditingProduct(prev => ({ ...prev, category: aiCategory }));
+                    } else {
+                        setNewProduct(prev => ({ ...prev, category: aiCategory }));
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("AI 분석 실패:", err);
+        }
+    };
     // --- 제품 수정 (AI 검사 적용) ---
     const handleUpdateProduct = async (e) => {
         e.preventDefault();
@@ -235,8 +361,12 @@ function AdminPage() {
                             <input type="number" placeholder="가격" value={newProduct.price} onChange={(e)=>setNewProduct({...newProduct, price: e.target.value})} required />
 
                             <div className="custom-file-upload">
-                                <label htmlFor="file-add">📸 제품 이미지 (AI 검수)</label>
-                                <input id="file-add" type="file" onChange={(e)=>setNewProductFile(e.target.files[0])} />
+                                <label htmlFor="file-add">📸 제품 이미지 (AI 검수 + 자동태깅)</label>
+                                <input
+                                    id="file-add"
+                                    type="file"
+                                    onChange={(e) => handleImageChange(e, false)}
+                                />
                                 {newProductFile && <span className="file-name">{newProductFile.name}</span>}
                             </div>
 
@@ -262,29 +392,15 @@ function AdminPage() {
                         <h2>📩 1:1 문의 ({contacts.length})</h2>
                         <div className="vertical-scroll-area">
                             {contacts.map(c => (
-                                <div key={c.id} className="admin-list-card" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '8px'}}>
-                                    <div style={{display:'flex', justifyContent:'space-between', width:'100%'}}>
-                                        <h4 style={{color:'#00d4ff', margin:0}}>{c.title}</h4>
-                                        <span style={{fontSize:'0.8rem', color:'#666'}}>{new Date(c.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    <p style={{color:'#ddd', fontSize:'0.9rem'}}>{c.content}</p>
-                                    {c.answer && activeContactId !== c.id && (
-                                        <div style={{background:'rgba(0,212,255,0.1)', padding:'10px', width:'100%', borderRadius:'4px', marginTop:'5px'}}>
-                                            <p style={{color:'#ccc', margin:0}}>↳ {c.answer}</p>
-                                        </div>
-                                    )}
-                                    {activeContactId === c.id ? (
-                                        <div style={{width:'100%', marginTop:'5px'}}>
-                                            <textarea value={replyText} onChange={(e)=>setReplyText(e.target.value)} style={{width:'100%', background:'#222', color:'white'}} placeholder="답변 입력..." />
-                                            <button onClick={()=>handleRegisterAnswer(c.id)} className="btn-save-small">등록</button>
-                                            <button onClick={()=>{setActiveContactId(null); setReplyText('');}} className="btn-cancel-small">취소</button>
-                                        </div>
-                                    ) : (
-                                        <button onClick={()=>{setActiveContactId(c.id); setReplyText(c.answer||'');}} style={{background:'none', border:'1px solid #555', color:'#aaa', fontSize:'0.8rem', marginTop:'5px'}}>
-                                            {c.answer ? '답변 수정' : '답변 달기'}
-                                        </button>
-                                    )}
-                                </div>
+                                <ContactItem
+                                    key={c.id}
+                                    contact={c}
+                                    activeContactId={activeContactId}
+                                    setActiveContactId={setActiveContactId}
+                                    replyText={replyText}
+                                    setReplyText={setReplyText}
+                                    handleRegisterAnswer={handleRegisterAnswer}
+                                />
                             ))}
                         </div>
                     </section>
@@ -357,10 +473,14 @@ function AdminPage() {
                                     )}
                                 </div>
 
-                                {/* 파일 선택 버튼 */}
+                                {/* 수정 팝업의 파일 업로드 부분 */}
                                 <div className="custom-file-upload">
                                     <label htmlFor="file-edit" style={{cursor:'pointer', color:'#00d4ff'}}>🔄 새 이미지 선택하기</label>
-                                    <input id="file-edit" type="file" onChange={(e)=>setEditingProductFile(e.target.files[0])} />
+                                    <input
+                                        id="file-edit"
+                                        type="file"
+                                        onChange={(e) => handleImageChange(e, true)}
+                                    />
                                     {editingProductFile && <span className="file-name" style={{color: '#00d4ff'}}> {editingProductFile.name}</span>}
                                 </div>
                             </div>

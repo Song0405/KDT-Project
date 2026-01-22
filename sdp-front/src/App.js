@@ -139,7 +139,7 @@ function App() {
                                 <h3 style={styles.columnTitle}>SUPPORT</h3>
                                 <Link style={styles.menuItem} to="/notices" onClick={toggleMenu}>공지사항</Link>
                                 <Link style={styles.menuItem} to="/contact" onClick={toggleMenu}>1:1 문의하기</Link>
-                                <Link style={{...styles.menuItem, color: '#bb86fc'}} to="/admin" onClick={toggleMenu}>관리자 모드</Link>
+                                {/* <Link style={{...styles.menuItem, color: '#bb86fc'}} to="/admin" onClick={toggleMenu}>관리자 모드</Link> */}
                             </div>
                         </div>
                     </div>
