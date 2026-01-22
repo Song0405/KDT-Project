@@ -7,6 +7,83 @@ const API_BASE_URL = 'http://localhost:8080/api';
 const IMAGE_SERVER_URL = 'http://localhost:8080/uploads';
 const AI_SERVER_URL = 'http://localhost:5002'; // 🐍 파이썬 주소 추가
 
+// 🤖 [NEW] AI가 실시간으로 분석해주는 문의사항 카드 컴포넌트
+const ContactItem = ({ contact, activeContactId, setActiveContactId, replyText, setReplyText, handleRegisterAnswer }) => {
+    const [aiAnalysis, setAiAnalysis] = useState(null);
+
+    // 컴포넌트가 화면에 나올 때 AI에게 분석 요청
+    useEffect(() => {
+        const analyze = async () => {
+            try {
+                const res = await axios.post(`${AI_SERVER_URL}/analyze-contact`, {
+                    title: contact.title,
+                    content: contact.content
+                });
+                if (res.data.status === 'success') {
+                    setAiAnalysis(res.data);
+                }
+            } catch (err) {
+                console.error("AI 분석 실패:", err);
+            }
+        };
+        analyze();
+    }, [contact]);
+
+    const isCritical = aiAnalysis?.priority === 'CRITICAL';
+
+    return (
+        <div className="admin-list-card"
+             style={{
+                 flexDirection: 'column',
+                 alignItems: 'flex-start',
+                 gap: '8px',
+                 // 🚨 긴급이면 빨간 테두리와 배경색 적용
+                 border: isCritical ? '2px solid #ff4d4d' : '1px solid #444',
+                 background: isCritical ? 'rgba(255, 77, 77, 0.1)' : '#333'
+             }}>
+
+            {/* AI 분석 배지 */}
+            {aiAnalysis && (
+                <div style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    color: isCritical ? '#ff4d4d' : '#00d4ff',
+                    marginBottom: '5px'
+                }}>
+                    {aiAnalysis.ai_memo}
+                </div>
+            )}
+
+            <div style={{display:'flex', justifyContent:'space-between', width:'100%'}}>
+                <h4 style={{color: isCritical ? '#ffaaaa' : '#00d4ff', margin:0}}>
+                    {isCritical && "🔥 "} {contact.title}
+                </h4>
+                <span style={{fontSize:'0.8rem', color:'#666'}}>{new Date(contact.createdAt).toLocaleDateString()}</span>
+            </div>
+
+            <p style={{color:'#ddd', fontSize:'0.9rem'}}>{contact.content}</p>
+
+            {contact.answer && activeContactId !== contact.id && (
+                <div style={{background:'rgba(0,212,255,0.1)', padding:'10px', width:'100%', borderRadius:'4px', marginTop:'5px'}}>
+                    <p style={{color:'#ccc', margin:0}}>↳ {contact.answer}</p>
+                </div>
+            )}
+
+            {activeContactId === contact.id ? (
+                <div style={{width:'100%', marginTop:'5px'}}>
+                    <textarea value={replyText} onChange={(e)=>setReplyText(e.target.value)} style={{width:'100%', background:'#222', color:'white'}} placeholder="답변 입력..." />
+                    <button onClick={()=>handleRegisterAnswer(contact.id)} className="btn-save-small">등록</button>
+                    <button onClick={()=>{setActiveContactId(null); setReplyText('');}} className="btn-cancel-small">취소</button>
+                </div>
+            ) : (
+                <button onClick={()=>{setActiveContactId(contact.id); setReplyText(contact.answer||'');}} style={{background:'none', border:'1px solid #555', color:'#aaa', fontSize:'0.8rem', marginTop:'5px'}}>
+                    {contact.answer ? '답변 수정' : '답변 달기'}
+                </button>
+            )}
+        </div>
+    );
+};
+
 function AdminPage() {
     // --- 1. 상태 관리 ---
     const [products, setProducts] = useState([]);
@@ -315,29 +392,15 @@ function AdminPage() {
                         <h2>📩 1:1 문의 ({contacts.length})</h2>
                         <div className="vertical-scroll-area">
                             {contacts.map(c => (
-                                <div key={c.id} className="admin-list-card" style={{flexDirection: 'column', alignItems: 'flex-start', gap: '8px'}}>
-                                    <div style={{display:'flex', justifyContent:'space-between', width:'100%'}}>
-                                        <h4 style={{color:'#00d4ff', margin:0}}>{c.title}</h4>
-                                        <span style={{fontSize:'0.8rem', color:'#666'}}>{new Date(c.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    <p style={{color:'#ddd', fontSize:'0.9rem'}}>{c.content}</p>
-                                    {c.answer && activeContactId !== c.id && (
-                                        <div style={{background:'rgba(0,212,255,0.1)', padding:'10px', width:'100%', borderRadius:'4px', marginTop:'5px'}}>
-                                            <p style={{color:'#ccc', margin:0}}>↳ {c.answer}</p>
-                                        </div>
-                                    )}
-                                    {activeContactId === c.id ? (
-                                        <div style={{width:'100%', marginTop:'5px'}}>
-                                            <textarea value={replyText} onChange={(e)=>setReplyText(e.target.value)} style={{width:'100%', background:'#222', color:'white'}} placeholder="답변 입력..." />
-                                            <button onClick={()=>handleRegisterAnswer(c.id)} className="btn-save-small">등록</button>
-                                            <button onClick={()=>{setActiveContactId(null); setReplyText('');}} className="btn-cancel-small">취소</button>
-                                        </div>
-                                    ) : (
-                                        <button onClick={()=>{setActiveContactId(c.id); setReplyText(c.answer||'');}} style={{background:'none', border:'1px solid #555', color:'#aaa', fontSize:'0.8rem', marginTop:'5px'}}>
-                                            {c.answer ? '답변 수정' : '답변 달기'}
-                                        </button>
-                                    )}
-                                </div>
+                                <ContactItem
+                                    key={c.id}
+                                    contact={c}
+                                    activeContactId={activeContactId}
+                                    setActiveContactId={setActiveContactId}
+                                    replyText={replyText}
+                                    setReplyText={setReplyText}
+                                    handleRegisterAnswer={handleRegisterAnswer}
+                                />
                             ))}
                         </div>
                     </section>
