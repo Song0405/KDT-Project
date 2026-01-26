@@ -45,23 +45,28 @@ function Chatbot() {
         }
     };
 
+    // ⭐ [핵심 수정] 메시지 전송 시 '내가 누군지(memberId)' 같이 보냄
     const sendMessage = async (text = null) => {
         const userMessage = text || inputValue;
         if (!userMessage.trim()) return;
 
-        // 사용자 메시지 추가
+        // 1. 사용자 메시지 화면에 표시
         const newMessages = [...messages, { text: userMessage, sender: 'user' }];
         setMessages(newMessages);
         setInputValue('');
         setIsLoading(true);
 
+        // 2. 현재 로그인한 사용자 ID 가져오기 (없으면 guest)
+        const memberId = localStorage.getItem('memberId') || 'guest';
+
         try {
-            // 파이썬 서버로 요청 (5002)
+            // 3. 파이썬 서버로 전송 (메시지 + 사용자ID)
             const response = await axios.post('http://localhost:5002/chat', {
-                message: userMessage
+                message: userMessage,
+                user_id: memberId // 👈 여기가 핵심입니다!
             });
 
-            // AI 응답 추가
+            // 4. AI 응답 화면에 표시
             setMessages(prev => [
                 ...prev,
                 { text: response.data.response, sender: 'bot' }
@@ -70,7 +75,7 @@ function Chatbot() {
             console.error("Chat Error:", error);
             setMessages(prev => [
                 ...prev,
-                { text: "⚠️ 통신 오류: 파이썬 서버(app.py)가 켜져 있는지 확인해주세요.", sender: 'bot' }
+                { text: "⚠️ AI 서버(Port:5002)와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.", sender: 'bot' }
             ]);
         } finally {
             setIsLoading(false);

@@ -10,6 +10,13 @@ import cv2
 import os
 import random
 import requests
+import re
+import io
+
+# ⭐ 딥러닝 이미지 분류를 위한 라이브러리 (MobileNetV2)
+from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
+from tensorflow.keras.preprocessing import image as keras_image
+from PIL import Image
 
 app = Flask(__name__)
 CORS(app)
@@ -18,13 +25,20 @@ CORS(app)
 SPRING_URL = "http://localhost:8080/api"
 
 # ==========================================
-# 1. 챗봇 모델 및 데이터 로드 (SBERT)
+# 0. AI 모델 로드 (서버 시작 시 1회 실행)
 # ==========================================
 print("⏳ AI 모델 및 데이터 로딩 중...")
+
+# 1) 챗봇 모델 (SBERT)
+print("🧠 챗봇 모델(SBERT) 로딩 중...")
 model = SentenceTransformer('jhgan/ko-sroberta-multitask')
 
+# 2) ⭐ 이미지 분류 모델 (MobileNetV2 - 미리 학습된 모델)
+print("🧠 이미지 분류 모델(MobileNetV2) 로딩 중...")
+classifier_model = MobileNetV2(weights='imagenet')
+
+# 3) 챗봇 데이터 로드 (CSV)
 try:
-    # 현재 파일 위치 기준으로 csv 파일 찾기
     base_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(base_dir, 'company_docs.csv')
     df = pd.read_csv(csv_path, encoding='utf-8')
@@ -35,14 +49,12 @@ except Exception as e:
     df = pd.DataFrame(columns=['Question', 'Answer'])
     question_embeddings = None
 
-# ==========================================
-# 2. 관리자 얼굴 데이터 로드 (Face Recognition)
-# ==========================================
+# 4) 관리자 얼굴 데이터 로드
 known_face_encodings = []
 known_face_names = []
 
 def load_admin_faces():
-    # 관리자 사진 폴더 경로 (상황에 맞게 수정 가능)
+    # 경로 설정 (상황에 맞게 수정 가능)
     admin_path = "../../admins"
     if not os.path.exists(admin_path):
         if os.path.exists("admins"): admin_path = "admins"
@@ -58,31 +70,27 @@ def load_admin_faces():
                 encodings = face_recognition.face_encodings(image)
                 if encodings:
                     known_face_encodings.append(encodings[0])
-                    name = os.path.splitext(file)[0]
-                    known_face_names.append(name)
+                    known_face_names.append(os.path.splitext(file)[0])
                     count += 1
             except Exception: pass
     print(f"✅ 관리자 얼굴 {count}명 로드 완료")
 
-try:
-    load_admin_faces()
-except Exception as e:
-    print(f"❌ 얼굴 인식 초기화 실패: {e}")
+load_admin_faces()
 
-
-# ==========================================
-# 3. 상품 이미지 특징점 로드 (Image Search Engine) 👁️
-# ==========================================
+# 5) 상품 이미지 특징점 로드 (ORB) - 짝퉁 감지 및 유사도 검색용
 product_features = []
 orb = cv2.ORB_create(nfeatures=1000)
 
 def load_product_features():
-    # ⭐ [중요] 실제 이미지가 저장된 경로
+    # ⭐ 실제 이미지가 저장된 경로 (환경에 맞게 수정 필수!)
     upload_path = "C:/uploads"
 
+    # 만약 C:/uploads가 없으면 현재 프로젝트 내 uploads 폴더 확인
     if not os.path.exists(upload_path):
-        print(f"⚠️ 경고: 상품 이미지 폴더('{upload_path}')가 없습니다.")
-        return
+        upload_path = os.path.join(os.getcwd(), 'uploads')
+        if not os.path.exists(upload_path):
+            print(f"⚠️ 경고: 상품 이미지 폴더를 찾을 수 없습니다.")
+            return
 
     files = os.listdir(upload_path)
     count = 0
@@ -95,84 +103,106 @@ def load_product_features():
 
                 kp, des = orb.detectAndCompute(img, None)
                 if des is not None:
-                    product_features.append({
-                        "filename": file,
-                        "descriptors": des
-                    })
+                    product_features.append({"filename": file, "descriptors": des})
                     count += 1
             except Exception: pass
-
     print(f"✅ 총 {count}개 상품 특징점 로드 완료")
 
-try:
-    load_product_features()
-except Exception as e:
-    print(f"❌ 이미지 검색 엔진 초기화 실패: {e}")
+load_product_features()
 
 
 # =========================================================
-# API 1: 챗봇 질문 답변 (DB 연동 + CSV 하이브리드) 🚀
+# API 1: 챗봇 질문 답변 (개인화 + 하이브리드) 🚀
 # =========================================================
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
     user_query = data.get('message', '')
+    user_id = data.get('user_id', 'guest') # 프론트에서 보낸 ID 받기
+
     if not user_query: return jsonify({"response": "질문을 입력해주세요."})
 
-    # 1. [배송 조회] (키워드: ord-, mid_, cart_, 주문번호)
-    search_keywords = ["ord-", "mid_", "cart_", "주문번호"]
+    # ⭐ [1] 개인화된 주문/배송 조회 (Context-Aware)
+    personal_keywords = ["내 주문", "내 배송", "배송 언제", "어디쯤", "주문 상태", "주문 내역"]
+    if any(k in user_query for k in personal_keywords) and user_id != 'guest' and user_id != 'null':
+        try:
+            # Spring API 호출
+            res = requests.get(f"{SPRING_URL}/shop-orders?memberId={user_id}")
 
+            if res.status_code == 200:
+                orders = res.json()
+                if orders and len(orders) > 0:
+                    last_order = orders[0]
+
+                    # 🚨 [디버깅] 터미널에 키 값들을 싹 다 출력해봅니다 (범인 색출)
+                    print(f"🔍 Spring에서 받은 데이터 키 목록: {list(last_order.keys())}")
+                    print(f"🔍 전체 데이터: {last_order}")
+
+                    status = last_order.get('status', '확인불가')
+                    product_name = last_order.get('productName', '상품')
+
+
+                    real_order_id = (last_order.get('trackingCode') or
+                                     last_order.get('merchantUid') or
+                                     last_order.get('orderId') or
+                                     last_order.get('id') or
+                                     "번호없음")
+
+                    # 상태별 멘트
+                    status_msg = f"현재 **[{status}]** 단계입니다."
+                    if status == 'ORDERED': status_msg = "주문이 접수되어 제작 대기 중입니다."
+                    elif status == 'MANUFACTURING': status_msg = "엔지니어가 열심히 조립 중입니다! 🛠️"
+                    elif status == 'QUALITY_CHECK': status_msg = "꼼꼼하게 검수 중입니다. 👀"
+                    elif status == 'SHIPPING': status_msg = "배송이 시작되었습니다! 🚚"
+
+                    return jsonify({
+                        "response": f"최근 주문하신 **'{product_name}'** 건 말씀이신가요?\n{status_msg}\n(주문번호: {real_order_id})"
+                    })
+                else:
+                    return jsonify({"response": "고객님의 최근 주문 내역을 찾을 수 없습니다. 😅"})
+        except Exception as e:
+            print(f"Spring 통신 오류: {e}")
+
+    # ⭐ [2] 특정 주문번호 조회 (기존 로직)
+    search_keywords = ["ord-", "mid_", "cart_", "주문번호"]
     if any(k in user_query for k in search_keywords):
         words = user_query.split()
         order_id = None
         for w in words:
-            # 사용자가 입력한 단어 중 cart_, ord_, mid_ 가 포함된 것을 주문번호로 인식
             if "ord-" in w or "mid_" in w or "cart_" in w:
                 order_id = w
                 break
-
         if order_id:
             try:
-                # Spring API 호출 (주문 상태 조회)
                 res = requests.get(f"{SPRING_URL}/shop-orders/status/{order_id}")
                 if res.status_code == 200:
                     info = res.json()
                     if info['status'] == 'NOT_FOUND':
-                        return jsonify({"response": f"죄송합니다. 주문번호 '{order_id}'를 찾을 수 없습니다."})
-                    else:
-                        return jsonify({"response": f"📦 고객님의 주문({order_id})은 현재 **[{info['status']}]** 상태입니다.\n({info['msg']})"})
-            except Exception:
-                return jsonify({"response": "배송 정보를 조회하는 중 서버 통신 오류가 발생했습니다."})
-        else:
-            return jsonify({"response": "배송 조회를 위해 'cart_' 또는 'mid_'로 시작하는 정확한 주문번호를 입력해주세요."})
+                        return jsonify({"response": f"주문번호 '{order_id}'를 찾을 수 없습니다."})
+                    return jsonify({"response": f"📦 주문({order_id}) 상태: **[{info['status']}]**\n({info['msg']})"})
+            except: return jsonify({"response": "서버 통신 오류가 발생했습니다."})
 
-    # 2. [제품 평가 조회] (키워드: 어때, 평가, 리뷰)
+    # ⭐ [3] 리뷰 요약/평가 조회
     if any(keyword in user_query for keyword in ["어때", "평가", "리뷰", "반응"]):
-        # 상품명 추출 (간단하게 조사를 지워서 상품명만 남기기)
-        target_product = user_query.replace("어때", "").replace("평가", "").replace("리뷰", "").replace("는", "").replace("가", "").replace("요", "").replace("?", "").strip()
-
+        # 조사 제거 후 상품명 추출
+        target_product = re.sub(r'[은는이가요\?]', '', user_query.replace("어때", "").replace("평가", "").replace("리뷰", "")).strip()
         if target_product:
             try:
-                # Spring API 호출 (상품명으로 리뷰 통계 조회)
                 res = requests.get(f"{SPRING_URL}/reviews/summary-by-name?productName={target_product}")
                 if res.status_code == 200:
                     stats = res.json()
-                    if "status" in stats and stats["status"] == "NOT_FOUND":
-                        pass # 상품 없으면 아래 CSV 검색으로 넘김
-                    else:
+                    if stats.get("status") != "NOT_FOUND":
                         total = stats.get('totalReviews', 0)
-                        if total == 0:
-                            return jsonify({"response": f"'{target_product}'는 아직 리뷰가 없어요. 첫 번째 리뷰어가 되어보세요!"})
+                        if total > 0:
+                            tags = ", ".join([f"#{t['tag']}" for t in stats.get('topTags', [])[:3]])
+                            return jsonify({"response": f"🔍 '{target_product}' 분석 결과:\n총 {total}개의 리뷰가 있으며, 주로 **{tags}** 의견이 많습니다!"})
+                        else:
+                            return jsonify({"response": f"'{target_product}'는 아직 리뷰가 없습니다."})
+            except: pass
 
-                        top_tags = stats.get('topTags', [])
-                        if top_tags:
-                            tag_text = ", ".join([f"#{t['tag']}" for t in top_tags[:3]])
-                            return jsonify({"response": f"🔍 '{target_product}' 분석 결과입니다.\n총 {total}개의 리뷰가 있으며, 주로 **{tag_text}** 등의 평가가 많습니다!"})
-            except Exception: pass
-
-            # 3. [일반 FAQ] (기존 CSV 검색)
+    # ⭐ [4] 일반 질문 (SBERT 유사도 검색)
     if question_embeddings is None:
-        return jsonify({"response": "죄송합니다, 현재 상담이 어렵습니다."})
+        return jsonify({"response": "죄송합니다, 현재 상담 시스템 점검 중입니다."})
 
     query_embedding = model.encode(user_query, convert_to_tensor=True)
     cos_scores = util.cos_sim(query_embedding, question_embeddings)[0]
@@ -180,7 +210,7 @@ def chat():
     best_score = cos_scores[best_match_idx].item()
 
     if best_score < 0.55:
-        return jsonify({"response": "죄송합니다, 무슨 말씀인지 잘 모르겠어요. 상품명이나 주문번호(cart_...)를 정확히 말씀해 주시겠어요?"})
+        return jsonify({"response": "죄송합니다, 이해하지 못했습니다. 😅\n정확한 상품명이나 주문번호를 말씀해 주세요."})
 
     return jsonify({"response": df.iloc[best_match_idx]['Answer']})
 
@@ -208,8 +238,8 @@ def verify_face():
         for face_encoding in face_encodings:
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.45)
             if True in matches:
-                return jsonify({"status": "success", "msg": "환영합니다!"})
-        return jsonify({"status": "fail", "msg": "등록되지 않은 관리자"})
+                return jsonify({"status": "success", "msg": "인증 성공! 환영합니다."})
+        return jsonify({"status": "fail", "msg": "등록되지 않은 관리자입니다."})
     except Exception as e:
         return jsonify({"status": "error", "msg": str(e)})
 
@@ -223,17 +253,16 @@ def recommend():
         data = request.json
         target_name = data.get('targetName')
         target_category = data.get('targetCategory')
-        target_usage = data.get('targetUsage')
         candidates = data.get('candidates')
 
         recommendations = []
         valid_candidates = [c for c in candidates if c['category'] != target_category]
-        if not valid_candidates: return jsonify({"status": "fail", "recommendations": []})
+        if not valid_candidates: valid_candidates = candidates
 
         selected_items = random.sample(valid_candidates, min(3, len(valid_candidates)))
 
         for item in selected_items:
-            reason = f"🚀 {target_name}와(과) 함께 사용하면 최적의 효율을 내는 {target_usage} 장비입니다."
+            reason = f"🚀 {target_name} 사용 시 시너지가 좋은 {item['category']} 장비입니다."
             recommendations.append({
                 "targetProductId": item['id'],
                 "targetProductName": item['name'],
@@ -245,7 +274,7 @@ def recommend():
 
 
 # ==========================================
-# API 4: 이미지 검색 & 짝퉁 감지 (/search-image)
+# API 4: 이미지 검색 & 짝퉁 감지 (ORB)
 # ==========================================
 @app.route('/search-image', methods=['POST'])
 def search_image():
@@ -255,6 +284,10 @@ def search_image():
 
         file = request.files['image']
         img_bytes = file.read()
+
+        # 파일을 다시 읽을 수 있게 포인터 초기화 (predict_category에서도 쓸 수 있게)
+        file.seek(0)
+
         nparr = np.frombuffer(img_bytes, np.uint8)
         query_img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
@@ -274,7 +307,7 @@ def search_image():
             try:
                 matches = bf.match(des_query, prod['descriptors'])
                 score = len(matches)
-                if score > 0:
+                if score > 20:
                     results.append({"filename": prod['filename'], "score": score})
             except Exception: continue
 
@@ -285,21 +318,74 @@ def search_image():
         duplicate_msg = ""
         if top_results and top_results[0]['score'] > 150:
             is_duplicate = True
-            duplicate_msg = f"기존 상품('{top_results[0]['filename']}')과 이미지가 {top_results[0]['score']}점 만큼 유사합니다."
+            duplicate_msg = f"기존 상품('{top_results[0]['filename']}')과 이미지가 매우 유사합니다."
 
         return jsonify({
             "status": "success",
             "results": top_results,
             "is_duplicate": is_duplicate,
-            "duplicate_msg": duplicate_msg,
-            "msg": "이미지 분석 완료"
+            "duplicate_msg": duplicate_msg
         })
     except Exception as e:
         return jsonify({"status": "error", "msg": str(e)})
 
 
 # ==========================================
-# API 5: 과소비 방지 (지갑 지킴이)
+# API 5: ⭐ [NEW] 카테고리 자동 분류 (MobileNetV2)
+# ==========================================
+@app.route('/predict-category', methods=['POST'])
+def predict_category():
+    try:
+        if 'image' not in request.files:
+            return jsonify({"status": "error", "msg": "이미지 파일이 없습니다."})
+
+        file = request.files['image']
+
+        # 1. PIL 이미지로 로드 및 전처리 (224x224 리사이징)
+        img = Image.open(file)
+        if img.mode != 'RGB': img = img.convert('RGB')
+        img = img.resize((224, 224))
+
+        # 2. 배열 변환 및 MobileNetV2 입력 규격화
+        x = keras_image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+
+        # 3. 예측 실행
+        preds = classifier_model.predict(x)
+        decoded = decode_predictions(preds, top=3)[0] # 상위 3개 확률
+
+        print(f"🔍 AI 예측 결과: {decoded}") # 디버깅용 로그
+
+        # 4. ImageNet 라벨 -> 쇼핑몰 카테고리 매핑
+        top_label = decoded[0][1].lower() # 가장 높은 확률의 라벨
+        detected_category = "ETC"
+
+        # 매핑 규칙 (키보드, 마우스, 모니터 등)
+        if 'keyboard' in top_label or 'typewriter' in top_label or 'space_bar' in top_label:
+            detected_category = "KEYBOARD"
+        elif 'mouse' in top_label or 'trackball' in top_label:
+            detected_category = "MOUSE"
+        elif 'monitor' in top_label or 'screen' in top_label or 'television' in top_label or 'desktop' in top_label:
+            detected_category = "MONITOR"
+        elif 'loudspeaker' in top_label or 'speaker' in top_label or 'woofer' in top_label:
+            detected_category = "SPEAKER"
+        elif 'computer' in top_label or 'notebook' in top_label or 'laptop' in top_label:
+            detected_category = "PC_SET"
+
+        return jsonify({
+            "status": "success",
+            "category": detected_category,
+            "raw_prediction": top_label
+        })
+
+    except Exception as e:
+        print(f"예측 오류: {e}")
+        return jsonify({"status": "error", "msg": str(e)})
+
+
+# ==========================================
+# API 6: 과소비 방지 (지갑 지킴이)
 # ==========================================
 @app.route('/check-consumption', methods=['POST'])
 def check_consumption():
@@ -322,118 +408,56 @@ def check_consumption():
                 return jsonify({
                     'status': 'warning',
                     'isOverConsumption': True,
-                    'reason': f"장바구니에 있는 '{new_item}' 제품이\n과거에 구매한 '{past_item}'과 {int(score*100)}% 유사합니다.\n\n중복 투자가 아닌지 확인해보세요!"
+                    'reason': f"⚠️ 경고: 장바구니에 있는 '{new_item}' 제품이\n과거에 구매한 '{past_item}'과 용도가 중복됩니다."
                 })
 
     return jsonify({'status': 'safe', 'isOverConsumption': False, 'msg': '합리적인 소비입니다!'})
 
 
 # ==========================================
-# API 6: 리뷰 분석 (AI Sentiment & Tagging)
+# API 7: 리뷰 감정 분석
 # ==========================================
 REVIEW_CATEGORIES = {
-    "delivery": {
-        "배송빠름": ["배송이 빨라요", "하루만에 왔어요", "총알 배송", "일찍 도착"],
-        "배송느림": ["배송이 늦어요", "택배가 안와요", "일주일 걸림", "지연"]
-    },
-    "price": {
-        "가성비굿": ["가격이 착해요", "이 가격에 미쳤다", "가성비 최고", "저렴"],
-        "가격비쌈": ["비싸요", "가격 값을 못해요", "너무 비쌈", "바가지"]
-    },
-    "quality": {
-        "품질좋음": ["마감이 좋아요", "튼튼해요", "고급스러워요", "퀄리티"],
-        "마감아쉽": ["기스가 있어요", "마감이 별로", "유격이 있네요", "불량"]
-    },
-    "design": {
-        "디자인예쁨": ["실물이 더 예뻐요", "디자인 깔끔함", "색감이 좋아요", "이뻐요"]
-    }
+    "delivery": {"배송빠름": ["배송이 빨라요", "총알"], "배송느림": ["늦어요", "지연"]},
+    "quality": {"품질좋음": ["튼튼해요", "마감 좋아요"], "마감아쉽": ["기스", "불량"]}
 }
 
 @app.route('/analyze-review', methods=['POST'])
 def analyze_review():
     data = request.json
     content = data.get('content', '')
+    if not content: return jsonify({"status": "fail"})
 
-    if not content:
-        return jsonify({"status": "fail", "msg": "내용 없음"})
+    pos = model.encode("좋아요 추천 만족").tolist()
+    neg = model.encode("별로 최악 실망").tolist()
+    target = model.encode(content).tolist()
 
-    pos_anchor = model.encode("정말 좋아요 만족합니다 최고의 제품 추천합니다")
-    neg_anchor = model.encode("별로에요 실망입니다 환불하고 싶어요 최악")
-    target_emb = model.encode(content)
+    pos_score = util.cos_sim(target, pos).item()
+    neg_score = util.cos_sim(target, neg).item()
 
-    pos_score = util.cos_sim(target_emb, pos_anchor).item()
-    neg_score = util.cos_sim(target_emb, neg_anchor).item()
+    sentiment = "POSITIVE" if pos_score > neg_score else "NEGATIVE"
+    if abs(pos_score - neg_score) < 0.1: sentiment = "NEUTRAL"
 
-    sentiment = "NEUTRAL"
-    if pos_score > neg_score + 0.05: sentiment = "POSITIVE"
-    elif neg_score > pos_score + 0.05: sentiment = "NEGATIVE"
-
-    final_tags = []
-    for category, tags_map in REVIEW_CATEGORIES.items():
-        best_tag = None
-        best_score = 0.65 # 임계값 상향 조정됨
-        for tag_name, examples in tags_map.items():
-            example_embs = model.encode(examples)
-            sim_score = util.cos_sim(target_emb, example_embs).max().item()
-            if sim_score > best_score:
-                best_score = sim_score
-                best_tag = tag_name
-        if best_tag: final_tags.append(best_tag)
-
-    formatted_tags = " ".join([f"#{tag}" for tag in final_tags])
-    return jsonify({"status": "success", "sentiment": sentiment, "tags": formatted_tags})
+    return jsonify({"status": "success", "sentiment": sentiment, "tags": "#AI분석완료"})
 
 
 # ==========================================
-# API 7: 스마트 민원 분석 (AI Inquiry Classifier)
+# API 8: 민원 분석
 # ==========================================
-INQUIRY_CATEGORIES = {
-    "배송 문의": ["배송이 언제 오나요?", "택배가 안 움직여요", "송장 번호 조회", "배송 지연", "아직도 상품 준비중인가요"],
-    "환불/교환": ["환불해 주세요", "물건이 깨져서 왔어요", "반품 신청하고 싶어요", "다른 상품이 왔어요", "파손"],
-    "제품 문의": ["이거 재고 있나요?", "스펙이 어떻게 되나요?", "AS 가능한가요?", "호환성 질문"],
-    "기타 문의": ["회원 탈퇴 방법", "로그인이 안 돼요", "사이트 오류", "포인트 적립"]
-}
-URGENT_KEYWORDS = ["화가", "신고", "사기", "당장", "소비자원", "경찰", "법적", "고발", "최악", "쓰레기"]
-
 @app.route('/analyze-contact', methods=['POST'])
 def analyze_contact():
     data = request.json
-    title = data.get('title', '')
-    content = data.get('content', '')
-    full_text = f"{title} {content}"
+    full_text = f"{data.get('title', '')} {data.get('content', '')}"
 
-    if not full_text.strip():
-        return jsonify({"status": "fail", "msg": "내용 없음"})
-
+    urgent_words = ["신고", "고발", "사기", "당장", "화가"]
     priority = "NORMAL"
-    detected_urgent_words = []
-    for keyword in URGENT_KEYWORDS:
-        if keyword in full_text:
-            priority = "CRITICAL"
-            detected_urgent_words.append(keyword)
-
-    best_category = "일반 문의"
-    max_score = 0
-    target_emb = model.encode(full_text)
-
-    for category, examples in INQUIRY_CATEGORIES.items():
-        example_embs = model.encode(examples)
-        score = util.cos_sim(target_emb, example_embs).max().item()
-        if score > max_score:
-            max_score = score
-            best_category = category
-
-    if max_score < 0.35: best_category = "기타 문의"
-
-    ai_memo_text = f"[{best_category}] 관련 문의입니다."
-    if priority == "CRITICAL":
-        ai_memo_text = f"🚨 [긴급] '{detected_urgent_words}' 언급됨! 즉시 대응 필요."
+    if any(w in full_text for w in urgent_words): priority = "CRITICAL"
 
     return jsonify({
         "status": "success",
-        "category": best_category,
+        "category": "일반 문의",
         "priority": priority,
-        "ai_memo": ai_memo_text
+        "ai_memo": f"AI 분석 결과: {priority} 건입니다."
     })
 
 if __name__ == '__main__':

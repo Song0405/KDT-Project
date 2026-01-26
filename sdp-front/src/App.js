@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import Swal from 'sweetalert2'; // 🍬 SweetAlert2 추가
 
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
@@ -59,11 +60,38 @@ function App() {
         fetchProducts();
     }, [isAuthenticated]);
 
+    // ⭐ [수정] 로그아웃 핸들러를 SweetAlert2로 변경
     const handleLogout = () => {
-        setIsAuthenticated(false);
-        localStorage.clear();
-        alert("정상적으로 로그아웃 되었습니다.");
-        navigate('/');
+        Swal.fire({
+            title: 'LOGOUT',
+            text: "정말 로그아웃 하시겠습니까?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4d4d', // 빨간색 (경고)
+            cancelButtonColor: '#3085d6',  // 파란색 (취소)
+            confirmButtonText: '네, 로그아웃',
+            cancelButtonText: '취소',
+            background: '#222', // 다크모드 배경
+            color: '#fff',      // 흰색 글씨
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setIsAuthenticated(false);
+                localStorage.clear();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '로그아웃 완료',
+                    text: '메인 화면으로 이동합니다.',
+                    background: '#333',
+                    color: '#fff',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    navigate('/');
+                });
+            }
+        });
     };
 
     const toggleMenu = () => {
@@ -139,7 +167,7 @@ function App() {
                                 <h3 style={styles.columnTitle}>SUPPORT</h3>
                                 <Link style={styles.menuItem} to="/notices" onClick={toggleMenu}>공지사항</Link>
                                 <Link style={styles.menuItem} to="/contact" onClick={toggleMenu}>1:1 문의하기</Link>
-                                <Link style={{...styles.menuItem, color: '#bb86fc'}} to="/admin" onClick={toggleMenu}>관리자 모드</Link>
+                                {/* <Link style={{...styles.menuItem, color: '#bb86fc'}} to="/admin" onClick={toggleMenu}>관리자 모드</Link> */}
                             </div>
                         </div>
                     </div>
@@ -193,7 +221,7 @@ function AccessDenied() {
     useEffect(() => {
         if (!hasAlerted.current) {
             hasAlerted.current = true;
-            alert("⛔ 관리자만 접근할 수 있는 페이지입니다.");
+            Swal.fire({ icon: 'error', title: '접근 불가', text: '⛔ 관리자만 접근할 수 있는 페이지입니다.', background: '#333', color: '#fff' });
             navigate('/', { replace: true });
         }
     }, [navigate]);

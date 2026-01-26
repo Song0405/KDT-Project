@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2'; // 🍬 추가
 import './JoinPage.css';
 
 function JoinPage() {
@@ -23,9 +24,9 @@ function JoinPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 기업 회원일 경우 사업자 번호 필수 체크 예시
+        // 기업 회원일 경우 사업자 번호 필수 체크
         if (formData.type === 'company' && !formData.businessNumber) {
-            alert("사업자 등록 번호를 입력해주세요.");
+            Swal.fire({ icon: 'warning', title: '입력 누락', text: '사업자 등록 번호를 입력해주세요.', background: '#333', color: '#fff' });
             return;
         }
 
@@ -37,14 +38,21 @@ function JoinPage() {
             });
 
             if (response.ok) {
-                alert("🎉 회원가입이 완료되었습니다! 로그인 후 ROOT STATION을 이용해보세요.");
-                navigate('/members/login');
+                Swal.fire({
+                    icon: 'success',
+                    title: '회원가입 완료! 🎉',
+                    text: 'ROOT STATION의 멤버가 되신 것을 환영합니다.',
+                    background: '#333', color: '#fff',
+                    confirmButtonColor: '#00d4ff'
+                }).then(() => {
+                    navigate('/members/login');
+                });
             } else {
                 const errorMsg = await response.text();
-                alert("가입 실패: " + errorMsg);
+                Swal.fire({ icon: 'error', title: '가입 실패', text: errorMsg, background: '#333', color: '#fff' });
             }
         } catch (error) {
-            alert("서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
+            Swal.fire({ icon: 'error', title: '통신 오류', text: '서버와 연결할 수 없습니다.', background: '#333', color: '#fff' });
         }
     };
 
@@ -57,7 +65,6 @@ function JoinPage() {
                 </header>
 
                 <form onSubmit={handleSubmit} className="join-form-area">
-                    {/* 회원 유형 선택 (탭 스타일) */}
                     <div className="type-tab-selector">
                         <div
                             className={`type-tab ${formData.type === 'individual' ? 'active' : ''}`}
@@ -100,7 +107,6 @@ function JoinPage() {
                             </div>
                         </div>
 
-                        {/* 유형에 따른 추가 정보 입력 */}
                         {formData.type === 'individual' ? (
                             <div className="input-group">
                                 <label>주민등록번호</label>
