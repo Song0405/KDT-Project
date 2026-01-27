@@ -1,7 +1,7 @@
 import requests
 import random
 import os
-import json  # ⭐ JSON 변환을 위해 추가
+import json
 
 # ⭐ 스프링 부트 API 주소 & 이미지 폴더
 API_URL = "http://localhost:8080/api/products"
