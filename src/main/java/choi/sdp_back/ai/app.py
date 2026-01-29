@@ -81,33 +81,78 @@ load_admin_faces()
 product_features = []
 orb = cv2.ORB_create(nfeatures=1000)
 
+def imread_korean(filepath):
+    """ 한글 경로의 이미지를 읽기 위한 함수 """
+    try:
+        # 파일을 바이너리로 읽어서 디코딩 (한글 경로 해결)
+        img_array = np.fromfile(filepath, np.uint8)
+        return cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)
+    except Exception:
+        return None
+
 def load_product_features():
-    # ⭐ 실제 이미지가 저장된 경로 (환경에 맞게 수정 필수!)
-    upload_path = "C:/uploads"
+    global product_features
+    product_features = []
 
-    # 만약 C:/uploads가 없으면 현재 프로젝트 내 uploads 폴더 확인
-    if not os.path.exists(upload_path):
-        upload_path = os.path.join(os.getcwd(), 'uploads')
-        if not os.path.exists(upload_path):
-            print(f"⚠️ 경고: 상품 이미지 폴더를 찾을 수 없습니다.")
-            return
+    # 1. 이미지 폴더 찾기
+    possible_paths = [
+        "C:/uploads",
+        os.path.join(os.getcwd(), 'uploads'),
+        "./static/images"
+    ]
 
+    upload_path = None
+    for path in possible_paths:
+        if os.path.exists(path) and len(os.listdir(path)) > 0:
+            upload_path = path
+            break
+
+    if not upload_path:
+        print("❌ 실패: 이미지 폴더를 못 찾음")
+        return
+
+    print(f"\n📂 분석 시작 (폴더: {upload_path})")
     files = os.listdir(upload_path)
-    count = 0
+
+    success_count = 0
+
     for file in files:
-        if file.lower().endswith((".jpg", ".png", ".jpeg", ".bmp")):
-            try:
-                img_path = os.path.join(upload_path, file)
-                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-                if img is None: continue
+        if not file.lower().endswith((".jpg", ".png", ".jpeg", ".bmp", ".webp")):
+            continue
 
-                kp, des = orb.detectAndCompute(img, None)
-                if des is not None:
-                    product_features.append({"filename": file, "descriptors": des})
-                    count += 1
-            except Exception: pass
-    print(f"✅ 총 {count}개 상품 특징점 로드 완료")
+        img_path = os.path.join(upload_path, file)
 
+        # 1. 파일 크기 체크 (0바이트면 스킵)
+        if os.path.getsize(img_path) == 0:
+            # print(f"❌ [0Byte/빈파일] {file}") # 로그 너무 길어지면 주석 처리
+            continue
+
+        # 2. 이미지 읽기
+        img = imread_korean(img_path)
+
+        # 읽기 실패 시, 일반 opencv로 한 번 더 시도
+        if img is None:
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+        if img is None:
+            # print(f"❌ [손상됨] {file}") # 로그 너무 길어지면 주석 처리
+            continue
+
+        # 3. 특징점 추출
+        kp, des = orb.detectAndCompute(img, None)
+
+        if des is not None:
+            product_features.append({"filename": file, "descriptors": des})
+            success_count += 1
+            # ⭐ 성공한 파일명 출력 (이걸로 테스트하세요!)
+            print(f"✅ [사용 가능] {file}")
+
+    print("-" * 30)
+    print(f"🎉 총 {success_count}개의 이미지가 준비되었습니다.")
+    print("👉 위 목록에 있는 '사용 가능' 파일 중 하나를 업로드하면 중복 감지가 됩니다!")
+    print("-" * 30)
+
+# 실행
 load_product_features()
 
 
@@ -274,7 +319,7 @@ def recommend():
 
 
 # ==========================================
-# API 4: 이미지 검색 & 짝퉁 감지 (ORB)
+# API 4: 이미지 검색 & 짝퉁 감지 (ORB) - 수정버전
 # ==========================================
 @app.route('/search-image', methods=['POST'])
 def search_image():
@@ -284,9 +329,7 @@ def search_image():
 
         file = request.files['image']
         img_bytes = file.read()
-
-        # 파일을 다시 읽을 수 있게 포인터 초기화 (predict_category에서도 쓸 수 있게)
-        file.seek(0)
+        file.seek(0) # 파일 포인터 초기화
 
         nparr = np.frombuffer(img_bytes, np.uint8)
         query_img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
@@ -299,6 +342,9 @@ def search_image():
         if des_query is None:
             return jsonify({"status": "fail", "msg": "이미지에서 특징을 찾을 수 없습니다."})
 
+        # 🚨 디버깅용 로그: 비교 대상이 몇 개인지 확인
+        print(f"🔍 현재 비교 대상 이미지 수: {len(product_features)}개")
+
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         results = []
 
@@ -307,6 +353,7 @@ def search_image():
             try:
                 matches = bf.match(des_query, prod['descriptors'])
                 score = len(matches)
+                # 매칭 점수가 20점 이상인 것만 결과에 포함
                 if score > 20:
                     results.append({"filename": prod['filename'], "score": score})
             except Exception: continue
@@ -316,9 +363,14 @@ def search_image():
 
         is_duplicate = False
         duplicate_msg = ""
-        if top_results and top_results[0]['score'] > 150:
+
+        # ⭐ [수정] 기준 점수를 150 -> 80으로 낮춤 (민감도 증가)
+        # 같은 사진이면 보통 300~500점 나오지만, 해상도가 다르면 점수가 낮을 수 있음
+        if top_results and top_results[0]['score'] > 80:
             is_duplicate = True
-            duplicate_msg = f"기존 상품('{top_results[0]['filename']}')과 이미지가 매우 유사합니다."
+            matched_filename = top_results[0]['filename']
+            duplicate_msg = f"기존 상품('{matched_filename}')과 이미지가 매우 유사합니다. (일치도: {top_results[0]['score']})"
+            print(f"🚫 중복 감지됨! ({matched_filename}, 점수: {top_results[0]['score']})")
 
         return jsonify({
             "status": "success",
@@ -327,6 +379,7 @@ def search_image():
             "duplicate_msg": duplicate_msg
         })
     except Exception as e:
+        print(f"에러 발생: {e}")
         return jsonify({"status": "error", "msg": str(e)})
 
 
@@ -415,11 +468,20 @@ def check_consumption():
 
 
 # ==========================================
-# API 7: 리뷰 감정 분석
+# API 7: 리뷰 감정 분석 및 자동 태그 생성
 # ==========================================
+# 1. 감지할 키워드 사전 정의
 REVIEW_CATEGORIES = {
-    "delivery": {"배송빠름": ["배송이 빨라요", "총알"], "배송느림": ["늦어요", "지연"]},
-    "quality": {"품질좋음": ["튼튼해요", "마감 좋아요"], "마감아쉽": ["기스", "불량"]}
+    "배송": {
+        "배송빠름": ["빨라요", "총알", "바로", "다음날", "일찍"],
+        "배송느림": ["늦어요", "지연", "안와요", "느려요"],
+        "포장꼼꼼": ["포장", "박스", "뽁뽁이", "안전"]
+    },
+    "품질": {
+        "품질좋음": ["튼튼", "마감", "깔끔", "예뻐요", "좋아요"],
+        "가성비": ["가성비", "가격", "저렴", "싸게"],
+        "마감아쉽": ["기스", "불량", "상처", "별로"]
+    }
 }
 
 @app.route('/analyze-review', methods=['POST'])
@@ -428,8 +490,9 @@ def analyze_review():
     content = data.get('content', '')
     if not content: return jsonify({"status": "fail"})
 
-    pos = model.encode("좋아요 추천 만족").tolist()
-    neg = model.encode("별로 최악 실망").tolist()
+    # 1. 긍정/부정 분석 (SBERT)
+    pos = model.encode("좋아요 추천 만족 최고").tolist()
+    neg = model.encode("별로 최악 실망 환불").tolist()
     target = model.encode(content).tolist()
 
     pos_score = util.cos_sim(target, pos).item()
@@ -438,8 +501,28 @@ def analyze_review():
     sentiment = "POSITIVE" if pos_score > neg_score else "NEGATIVE"
     if abs(pos_score - neg_score) < 0.1: sentiment = "NEUTRAL"
 
-    return jsonify({"status": "success", "sentiment": sentiment, "tags": "#AI분석완료"})
+    # 2. 태그 자동 생성 로직
+    generated_tags = []
 
+    # 사전을 돌면서 단어가 포함되어 있는지 확인
+    for category, sub_cats in REVIEW_CATEGORIES.items():
+        for tag, keywords in sub_cats.items():
+            # 댓글 내용에 키워드가 하나라도 있으면 태그 추가
+            if any(k in content for k in keywords):
+                generated_tags.append(f"#{tag}")
+
+    # 태그가 하나도 없으면 감정 태그라도 붙임
+    if not generated_tags:
+        if sentiment == "POSITIVE": generated_tags.append("#만족해요")
+        elif sentiment == "NEGATIVE": generated_tags.append("#아쉬워요")
+        else: generated_tags.append("#AI분석완료")
+
+    # 결과 반환 (태그 리스트를 문자열로 합쳐서 전송)
+    return jsonify({
+        "status": "success",
+        "sentiment": sentiment,
+        "tags": " ".join(generated_tags)
+    })
 
 # ==========================================
 # API 8: 민원 분석
