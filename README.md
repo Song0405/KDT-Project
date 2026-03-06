@@ -37,6 +37,8 @@ graph LR
     end
     
     B -- "OCR Request" --> E["Google Cloud Vision API"]
+```
+
 👨‍💻 핵심 구현 기능 (Developed by 김태현)
 본 프로젝트에서 Python AI 서버 구축, React 프론트엔드 연동, 그리고 물류 프로세스 설계까지 풀스택 전반을 주도했습니다. 특히 단순 쇼핑몰을 넘어선 **지능형 서비스(AI)**와 스마트 물류 시스템, 그리고 견고한 게시판(CRUD) 로직을 직접 설계 및 구현했습니다.
 
