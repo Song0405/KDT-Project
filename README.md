@@ -53,12 +53,12 @@
 
 ```mermaid
 graph LR
-    A[Client (React)] -- REST API (Port 3000) --> B[Main Server (Spring Boot / Port 8080)]
-    B -- JPA/JDBC --> C[(Oracle DB)]
+    A["Client (React)"] -- "REST API (Port 3000)" --> B["Main Server (Spring Boot / Port 8080)"]
+    B -- "JPA/JDBC" --> C[("Oracle DB")]
     
     subgraph AI Service
-    A -- Chat/Face Request --> D[AI Server (Python Flask / Port 5002)]
-    D -- Analysis Result --> A
+        A -- "Chat/Face Request" --> D["AI Server (Python Flask / Port 5002)"]
+        D -- "Analysis Result" --> A
     end
     
-    B -- OCR Request --> E[Google Cloud Vision API]
+    B -- "OCR Request" --> E["Google Cloud Vision API"]
